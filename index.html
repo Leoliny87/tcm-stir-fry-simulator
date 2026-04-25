@@ -201,6 +201,7 @@ body {
 .status-dot.idle { background: #ffa502; }
 .status-dot.running { background: #2ed573; animation: blink 1s infinite; }
 .status-dot.stopped { background: #ff4757; }
+.status-dot.cooking { background: #ffa502; animation: blink 0.6s infinite; }
 .status-dot.cooling { background: #00d4ff; animation: blink 1.5s infinite; }
 .status-dot.cleaning { background: #a855f7; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
@@ -214,6 +215,24 @@ body {
   padding: 2px 4px;
   margin-bottom: 3px;
   line-height: 1.3;
+}
+
+/* ===== 药材选择下拉框 ===== */
+.ts-herb-select {
+  width: 100%;
+  background: rgba(0,0,0,0.5);
+  color: #00d4ff;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 3px;
+  font-size: 7px;
+  padding: 2px 4px;
+  margin-bottom: 3px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='4'%3E%3Cpath d='M0 0l4 4 4-4z' fill='%2300d4ff'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
 }
 
 .ts-slider-group {
@@ -292,6 +311,32 @@ input[type="range"]::-webkit-slider-thumb {
 @keyframes feedPulse {
   0%, 100% { box-shadow: 0 2px 10px rgba(255, 165, 2, 0.5); }
   50% { box-shadow: 0 2px 18px rgba(255, 165, 2, 0.9); }
+}
+
+/* ===== QTE 倒计时 ===== */
+.qte-countdown {
+  text-align: center;
+  font-size: 9px;
+  color: #ff4757;
+  font-weight: 700;
+  margin-bottom: 2px;
+  display: none;
+  text-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
+}
+.qte-countdown.visible { display: block; }
+.qte-countdown .qte-bar {
+  width: 100%;
+  height: 3px;
+  background: #3a3a3e;
+  border-radius: 2px;
+  margin-top: 2px;
+  overflow: hidden;
+}
+.qte-countdown .qte-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff4757, #ffa502);
+  border-radius: 2px;
+  transition: width 0.1s linear;
 }
 
 #chart-container {
@@ -453,7 +498,7 @@ input[type="range"]::-webkit-slider-thumb {
   color: #888;
 }
 
-/* ===== 报告弹窗（最小化，仅用于展示） ===== */
+/* ===== 报告弹窗 ===== */
 .report-modal {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.92);
@@ -538,6 +583,75 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer; letter-spacing: 1px;
 }
 
+/* ===== GMP 模态框 ===== */
+.gmp-modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+}
+.gmp-modal.hidden { display: none; }
+.gmp-modal .modal-box {
+  max-width: 92vw;
+  width: 340px;
+  background: linear-gradient(135deg, #1a1a2e, #1e1e1e);
+  border: 2px solid rgba(0, 212, 255, 0.4);
+  border-radius: 16px;
+  padding: 24px 20px;
+}
+.gmp-modal .modal-title {
+  color: #00d4ff;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 16px;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+.gmp-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.gmp-check-item input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: #00d4ff;
+  cursor: pointer;
+}
+.gmp-check-item label {
+  font-size: 12px;
+  color: #ccc;
+  cursor: pointer;
+}
+.gmp-modal .modal-btn {
+  margin-top: 16px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+.gmp-btn-confirm {
+  background: linear-gradient(135deg, #2ed573, #1a9c4c);
+  color: #fff;
+  margin-bottom: 6px;
+}
+.gmp-btn-confirm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.gmp-btn-skip {
+  background: rgba(255,255,255,0.08);
+  color: #888;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
 /* ===== 故障报警 ===== */
 .fault-overlay {
   position: absolute;
@@ -614,6 +728,23 @@ input[type="range"]::-webkit-slider-thumb {
 <!-- Toast 提示条 -->
 <div class="toast-bar" id="toast-bar"></div>
 
+<!-- ===== GMP 合规模态框 ===== -->
+<div class="gmp-modal" id="gmp-modal">
+  <div class="modal-box">
+    <div class="modal-title">车间环境与设备巡检</div>
+    <div class="gmp-check-item">
+      <input type="checkbox" id="gmp-check-1" onchange="checkGmpModalReady()">
+      <label for="gmp-check-1">确认设备已挂【已清洁】标牌</label>
+    </div>
+    <div class="gmp-check-item">
+      <input type="checkbox" id="gmp-check-2" onchange="checkGmpModalReady()">
+      <label for="gmp-check-2">确认通风排烟系统已开启</label>
+    </div>
+    <button class="modal-btn gmp-btn-confirm" id="gmp-btn-confirm" disabled onclick="confirmGmpModal()">确认并完成GMP检查</button>
+    <button class="modal-btn gmp-btn-skip" onclick="skipGmpModal()">跳过（扣5分）</button>
+  </div>
+</div>
+
 <!-- ===== 设备图 + 所有热点 ===== -->
 <div class="machine-wrapper" id="machine-wrapper">
   <img src="bg_machine.png" alt="炒药机" class="machine-img" id="machine-img">
@@ -676,8 +807,22 @@ input[type="range"]::-webkit-slider-thumb {
       </div>
     </div>
 
+    <!-- 药材选择 -->
+    <select class="ts-herb-select" id="herb-select" onchange="onHerbChange(this.value)">
+      <option value="">-- 选择药材 --</option>
+      <option value="zhike">麸炒枳壳</option>
+      <option value="shanyao">清炒山药</option>
+      <option value="baizhu">土炒白术</option>
+    </select>
+
     <div id="estop-timer-display" style="display:none; text-align:center; font-size:7px; color:#ff4757; margin-bottom:2px;">
       ⚠ <span id="estop-countdown">3</span>秒内拍急停！
+    </div>
+
+    <!-- QTE 投药倒计时 -->
+    <div class="qte-countdown" id="qte-countdown">
+      投药窗口 <span id="qte-timer">5.0</span>s
+      <div class="qte-bar"><div class="qte-bar-fill" id="qte-bar-fill" style="width:100%"></div></div>
     </div>
 
     <div class="ts-slider-group">
@@ -696,6 +841,8 @@ input[type="range"]::-webkit-slider-thumb {
 
     <button class="ts-btn ts-btn-start" id="btn-start" onclick="startHeating()" disabled style="margin-bottom:2px;">启动</button>
     <button class="ts-btn ts-btn-stop" id="btn-stop" onclick="handleEStop()">紧急停止</button>
+    <!-- 调试：手动触发故障测试 -->
+    <button id="btn-test-fault" onclick="triggerFault()" style="display:none; margin-top:2px; font-size:6px; color:#888; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:2px; width:100%; cursor:pointer;">[调试] 触发故障</button>
   </div>
 
   <!-- ===== 清场步骤面板 ===== -->
@@ -732,7 +879,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 <!-- ===== 底部信息栏 ===== -->
 <div class="bottom-bar" id="bottom-bar">
-  <span class="info-text" id="bottom-hint">请点击设备上的绿色热点开始检查</span>
+  <span class="info-text" id="bottom-hint">请先完成GMP安全确认</span>
 </div>
 
 <!-- ===== 滚筒放大 ===== -->
@@ -762,7 +909,48 @@ input[type="range"]::-webkit-slider-thumb {
 </div>
 
 <script>
-// ===== 状态管理 =====
+// ============================================================
+// 状态机定义：8 个明确阶段，每个阶段有进入/退出行为
+// INIT → PARAM_SETTING → HEATING → COOKING → COOLING → CLEANING → FINISHED
+// 异常路径：HEATING → EMERGENCY_TEST → (急停响应) → HEATING 或 emergencyStop → CLEANING
+// ============================================================
+const PHASE = {
+  INIT: 'init',              // GMP模态框阶段，触摸屏锁定
+  PARAM_SETTING: 'param_setting',  // 参数设定（药材+温度+转速）
+  HEATING: 'heating',        // 动态升温，含投药QTE窗口
+  COOKING: 'cooking',        // 炮制中（投药后维持加热一段时间）
+  COOLING: 'cooling',        // 自然降温
+  CLEANING: 'cleaning',      // 清场阶段
+  FINISHED: 'finished',      // 完成，可查看报告
+  EMERGENCY_TEST: 'emergency_test', // 突发异常处理
+};
+
+// ============================================================
+// 计分系统（独立于 UI）
+// ============================================================
+function createScoreState() {
+  return {
+    baseScore: 100,
+    deductions: [],
+    // 考核锚点
+    gmpCheckPassed: true,    // GMP是否完整通过
+    paramErrors: [],         // 参数错误记录
+    feedTiming: null,        // 投药时机记录
+    earlyFeedAttempt: false, // 是否尝试提前投药
+    emergencyReacted: false, // 急停是否响应
+    emergencyTriggered: false, // 是否触发了故障
+    cleanupOrderError: false,  // 清场顺序是否出错
+  };
+}
+
+function addDeduction(reason, points) {
+  state.deductions.push({ reason, points });
+  state.baseScore += points;
+}
+
+// ============================================================
+// 应用状态
+// ============================================================
 let state = {
   running: false,
   currentTemp: 25, targetTemp: 0,
@@ -770,16 +958,26 @@ let state = {
   tempHistory: [], timeHistory: [],
   simTime: 0, drumAngle: 0,
   animFrame: null, lastTime: 0,
-  phase: 'idle',
+  phase: PHASE.INIT,
   feedPrompted: false, feedPromptTime: 0, feedDone: false, feedDelay: 0,
-  runningDuration: 0, evalTimer: null,
-  score: 100, deductions: [],
+  runningDuration: 0, evalTimer: null, qteTimer: null, qteInterval: null,
+  baseScore: 100, deductions: [],
   gmpChecks: { 1: false, 2: false, 3: false }, gmpConfirmed: false,
+  gmpSkipped: false,
   faultTriggered: false, faultType: null, postFeedFaultTimer: null,
   estopTimer: null, estopReacted: false,
   cleanupStep: 0,
   coolingPhase: false, coolingStartTemp: 0, coolingStartTime: 0,
-  recordData: null, maxTempReached: 0, feedTempAtMoment: 0,
+  recordData: null, maxTempReached: 25, feedTempAtMoment: 0,
+  selectedHerb: '', herbName: '',
+  scoreState: createScoreState(),
+};
+
+// 药材工艺参数映射
+const HERB_RECIPES = {
+  zhike: { name: '麸炒枳壳', tempMin: 180, tempMax: 220, speedMin: 20, speedMax: 30 },
+  shanyao: { name: '清炒山药', tempMin: 140, tempMax: 170, speedMin: 15, speedMax: 25 },
+  baizhu: { name: '土炒白术', tempMin: 120, tempMax: 160, speedMin: 15, speedMax: 20 },
 };
 
 const drumOverlay = document.getElementById('drum-overlay');
@@ -789,36 +987,23 @@ const btnStop = document.getElementById('btn-stop');
 const screenOverlay = document.getElementById('screen-overlay');
 const smokeContainer = document.getElementById('smoke-container');
 
-// ===== 百分比坐标系统（基于2752x1536原图） =====
+// ============================================================
+// 百分比坐标系统（基于2752x1536原图）
+// ============================================================
 const P = {
-  // GMP热点：分布在设备三个关键区域
-  gmp1: { x: 28, y: 20, w: 8, h: 10 },  // 出料口/料槽附近 — 设备清洁
-  gmp2: { x: 50, y: 8, w: 6, h: 8 },    // 控制面板顶部 — 安全检查
-  gmp3: { x: 30, y: 55, w: 8, h: 10 },  // 底部电磁线圈 — 冷却系统
-
-  // 触摸屏
+  gmp1: { x: 28, y: 20, w: 8, h: 10 },
+  gmp2: { x: 50, y: 8, w: 6, h: 8 },
+  gmp3: { x: 30, y: 55, w: 8, h: 10 },
   ts: { x: 73, y: 19, w: 18, h: 42 },
-
-  // 滚筒观察窗
   drum: { x: 36, y: 32, w: 14, h: 14 },
-
-  // 投药热点（料斗区域）
   feed: { x: 25, y: 5, w: 12, h: 12 },
-
-  // 故障报警（设备中部上方）
   fault: { x: 40, y: 15, w: 20, h: 15 },
-
-  // 清场热点
-  cleanPower:   { x: 80, y: 25, w: 6, h: 8 },  // 电源开关
-  cleanCool:    { x: 45, y: 32, w: 10, h: 10 }, // 滚筒
-  cleanEmpty:   { x: 65, y: 50, w: 8, h: 10 },  // 出料口
-  cleanSweep:   { x: 40, y: 35, w: 8, h: 10 },  // 滚筒内部
-  cleanSign:    { x: 85, y: 45, w: 6, h: 8 },   // 设备侧面
-
-  // 清场面板位置
+  cleanPower:   { x: 80, y: 25, w: 6, h: 8 },
+  cleanCool:    { x: 45, y: 32, w: 10, h: 10 },
+  cleanEmpty:   { x: 65, y: 50, w: 8, h: 10 },
+  cleanSweep:   { x: 40, y: 35, w: 8, h: 10 },
+  cleanSign:    { x: 85, y: 45, w: 6, h: 8 },
   cleanPanel: { x: 5, y: 5, w: 22, h: 40 },
-
-  // 报告热点（控制面板下方）
   report: { x: 85, y: 60, w: 6, h: 8 },
 };
 
@@ -839,20 +1024,17 @@ function calcPos(pct) {
 
 function positionAll() {
   const img = document.getElementById('machine-img');
-  const rect = img.getBoundingClientRect();
   const naturalW = img.naturalWidth || 2752;
   const naturalH = img.naturalHeight || 1536;
-  const scaleX = rect.width / naturalW;
-  const scaleY = rect.height / naturalH;
+  const scaleX = img.getBoundingClientRect().width / naturalW;
+  const scaleY = img.getBoundingClientRect().height / naturalH;
 
-  // 滚筒
   const d = calcPos(P.drum);
   drumOverlay.style.width = d.width + 'px';
   drumOverlay.style.height = d.height + 'px';
   drumOverlay.style.left = (d.left + d.width * 0.1) + 'px';
   drumOverlay.style.top = d.top + 'px';
 
-  // 触摸屏
   const t = calcPos(P.ts);
   const ts = document.getElementById('touchscreen');
   ts.style.left = t.left + 'px';
@@ -860,7 +1042,6 @@ function positionAll() {
   ts.style.width = t.width + 'px';
   ts.style.height = t.height + 'px';
 
-  // GMP热点
   [1,2,3].forEach(i => {
     const p = calcPos(P['gmp' + i]);
     const el = document.getElementById('gmp-hotspot-' + i);
@@ -870,7 +1051,6 @@ function positionAll() {
     el.style.height = (p.height * 0.8) + 'px';
   });
 
-  // 投药热点
   const f = calcPos(P.feed);
   const fh = document.getElementById('feed-hotspot');
   fh.style.left = (f.left + f.width * 0.1) + 'px';
@@ -878,7 +1058,6 @@ function positionAll() {
   fh.style.width = (f.width * 0.8) + 'px';
   fh.style.height = (f.height * 0.8) + 'px';
 
-  // 故障报警
   const fa = calcPos(P.fault);
   const fo = document.getElementById('fault-overlay');
   fo.style.left = (fa.left + fa.width * 0.1) + 'px';
@@ -886,14 +1065,11 @@ function positionAll() {
   fo.style.width = (fa.width * 0.8) + 'px';
   fo.style.height = (fa.height * 0.8) + 'px';
 
-  // 清场面板
   const cp = calcPos(P.cleanPanel);
-  const cPanel = document.getElementById('cleanup-panel');
-  cPanel.style.left = cp.left + 'px';
-  cPanel.style.top = cp.top + 'px';
-  cPanel.style.width = cp.width + 'px';
+  document.getElementById('cleanup-panel').style.left = cp.left + 'px';
+  document.getElementById('cleanup-panel').style.top = cp.top + 'px';
+  document.getElementById('cleanup-panel').style.width = cp.width + 'px';
 
-  // 清场热点
   const cleanMap = {
     'clean-hotspot-power': P.cleanPower,
     'clean-hotspot-cool': P.cleanCool,
@@ -910,7 +1086,6 @@ function positionAll() {
     el.style.height = (c.height * 0.8) + 'px';
   });
 
-  // 报告热点
   const r = calcPos(P.report);
   const rh = document.getElementById('report-hotspot');
   rh.style.left = (r.left + r.width * 0.1) + 'px';
@@ -919,11 +1094,12 @@ function positionAll() {
   rh.style.height = (r.height * 0.8) + 'px';
 }
 
+// ===== 初始化 =====
 window.addEventListener('load', () => {
   positionAll();
-  showGmpPhase();
+  initGmpModal();
 });
-window.addEventListener('resize', positionAll);
+window.addEventListener('resize', () => { chart.resize(); positionAll(); });
 
 // ===== ECharts =====
 const chartContainer = document.getElementById('chart-container');
@@ -945,9 +1121,8 @@ chart.setOption({
     data: [],
   }],
 });
-window.addEventListener('resize', () => { chart.resize(); positionAll(); });
 
-// ===== Toast 提示 =====
+// ===== Toast =====
 function showToast(msg, type) {
   const bar = document.getElementById('toast-bar');
   const t = document.createElement('div');
@@ -957,18 +1132,52 @@ function showToast(msg, type) {
   setTimeout(() => t.remove(), 2500);
 }
 
-// ===== GMP阶段：热点交互 =====
+// ============================================================
+// 阶段1：GMP 合规模态框
+// ============================================================
+function initGmpModal() {
+  document.getElementById('gmp-modal').classList.remove('hidden');
+  showToast('请先完成车间环境与设备巡检', 'info');
+}
+
+function checkGmpModalReady() {
+  const c1 = document.getElementById('gmp-check-1').checked;
+  const c2 = document.getElementById('gmp-check-2').checked;
+  document.getElementById('gmp-btn-confirm').disabled = !(c1 && c2);
+}
+
+function confirmGmpModal() {
+  state.gmpConfirmed = true;
+  state.gmpCheckPassed = true;
+  state.scoreState.gmpCheckPassed = true;
+  document.getElementById('gmp-modal').classList.add('hidden');
+  state.phase = PHASE.PARAM_SETTING;
+  showGmpPhase();
+  showToast('GMP确认完成，请选择药材并设置参数', 'success');
+}
+
+function skipGmpModal() {
+  state.gmpSkipped = true;
+  state.gmpCheckPassed = false;
+  state.scoreState.gmpCheckPassed = false;
+  addDeduction('GMP安全确认未完成（跳过）', -5);
+  document.getElementById('gmp-modal').classList.add('hidden');
+  state.phase = PHASE.PARAM_SETTING;
+  showGmpPhase();
+  showToast('已跳过GMP确认，扣5分', 'warning');
+}
+
+// GMP 热点交互（与模态框并行）
 function showGmpPhase() {
-  state.phase = 'gmp_confirm';
-  document.getElementById('bottom-hint').textContent = '请点击设备上的绿色热点完成GMP安全确认（共3项）';
+  document.getElementById('bottom-hint').textContent = '请点击设备上的绿色热点完成设备巡检（共3项）';
   [1,2,3].forEach(i => {
     document.getElementById('gmp-hotspot-' + i).style.display = 'block';
   });
-  showToast('请先检查设备清洁状态', 'info');
+  showToast('请检查设备清洁状态', 'info');
 }
 
 function clickGmpHotspot(num) {
-  if (state.phase !== 'gmp_confirm') return;
+  if (!state.gmpConfirmed && !state.gmpSkipped) return; // 模态框未完成前不可点击
   if (state.gmpChecks[num]) return;
 
   state.gmpChecks[num] = true;
@@ -984,20 +1193,31 @@ function clickGmpHotspot(num) {
   showToast(msgs[num], 'success');
 
   if (state.gmpChecks[1] && state.gmpChecks[2] && state.gmpChecks[3]) {
-    state.gmpConfirmed = true;
-    state.phase = 'ready';
+    if (!state.gmpConfirmed) {
+      // 全部点击完成但之前跳过了模态框，不额外加分
+      return;
+    }
     setTimeout(() => {
       [1,2,3].forEach(i => {
         document.getElementById('gmp-hotspot-' + i).style.display = 'none';
       });
-      document.getElementById('bottom-hint').textContent = '设置参数后点击"启动"开始加热';
-      btnStart.disabled = false;
-      showToast('GMP确认完成，请设置参数并启动', 'success');
     }, 800);
   }
 }
 
-// ===== 参数设置 =====
+// ============================================================
+// 阶段2：工艺参数设定
+// ============================================================
+function onHerbChange(value) {
+  if (!HERB_RECIPES[value]) return;
+  state.selectedHerb = value;
+  state.herbName = HERB_RECIPES[value].name;
+  const recipe = HERB_RECIPES[value];
+  document.getElementById('ts-task').innerHTML =
+    '<b>' + recipe.name + '</b> 温度' + recipe.tempMin + '-' + recipe.tempMax + '℃ 转速' + recipe.speedMin + '-' + recipe.speedMax + 'r/min';
+  showToast('已选择 ' + recipe.name + '，请设置参数', 'info');
+}
+
 function updateTemp(v) {
   state.targetTemp = parseInt(v);
   document.getElementById('temp-val').textContent = v === '0' ? '--' : v;
@@ -1007,14 +1227,16 @@ function updateSpeed(v) {
   document.getElementById('speed-val').textContent = v === '0' ? '--' : v;
 }
 
-// ===== 启动加热 =====
+// ============================================================
+// 阶段3：动态升温
+// ============================================================
 function startHeating() {
   if (state.running) return;
   if (state.targetTemp === 0 || state.targetSpeed === 0) {
     showToast('请先设置目标温度和滚筒转速！', 'error');
     return;
   }
-  if (!state.gmpConfirmed) {
+  if (!state.gmpConfirmed && !state.gmpSkipped) {
     showToast('未完成GMP安全确认！', 'error');
     addDeduction('GMP安全确认缺失', -20);
     return;
@@ -1031,7 +1253,7 @@ function startHeating() {
   state.lastTime = performance.now();
   state.tempHistory = [];
   state.timeHistory = [];
-  state.phase = 'heating';
+  state.phase = PHASE.HEATING;
   state.maxTempReached = 25;
   lowSpeedLogged = false;
   overtempLogged = false;
@@ -1039,108 +1261,17 @@ function startHeating() {
   btnStart.disabled = true;
   document.getElementById('status-text').textContent = '加热中';
   document.getElementById('status-dot').className = 'status-dot running';
-
   drumOverlay.classList.add('visible');
 
-  // 故障模拟在投药成功后触发（加热阶段不应被打断）
-  if (Math.random() < 0.5) schedulePostFeedFault();
+  // 故障模拟：投药后触发（30%概率，符合建议）
+  if (Math.random() < 0.3) schedulePostFeedFault();
   showToast('设备启动，开始加热', 'info');
   requestAnimationFrame(simulate);
 }
 
-// ===== 故障模拟 =====
-function scheduleFault() {
-  setTimeout(() => {
-    if (!state.running || state.faultTriggered) return;
-    triggerFault();
-  }, 8000 + Math.random() * 15000);
-}
-
-// 投药后故障（在炮制阶段触发，给学生应急停机会）
-function schedulePostFeedFault() {
-  state.postFeedFaultTimer = setTimeout(() => {
-    if (!state.running || state.faultTriggered) return;
-    triggerFault();
-  }, 3000 + Math.random() * 5000);
-}
-function triggerFault() {
-  state.faultTriggered = true;
-  const faults = [
-    { type: 'coil_overheat', text: '线圈过热报警！' },
-    { type: 'drum_jam', text: '滚筒卡死！' },
-  ];
-  const fault = faults[Math.floor(Math.random() * 2)];
-  state.faultType = fault.type;
-  document.getElementById('fault-text').textContent = '⚠ ' + fault.text;
-  document.getElementById('fault-overlay').classList.add('visible');
-  btnStop.classList.add('ts-btn-estop-alert');
-  document.getElementById('estop-timer-display').style.display = 'block';
-
-  let countdown = 3;
-  document.getElementById('estop-countdown').textContent = countdown;
-  state.estopReacted = false;
-  showToast('设备故障！3秒内拍急停！', 'error');
-
-  state.estopTimer = setInterval(() => {
-    countdown--;
-    document.getElementById('estop-countdown').textContent = Math.max(0, countdown);
-    if (countdown <= 0) {
-      clearInterval(state.estopTimer);
-      if (!state.estopReacted && state.running) {
-        state.running = false;
-        if (state.animFrame) cancelAnimationFrame(state.animFrame);
-        addDeduction('故障响应超时（未在3秒内拍急停）', -100);
-        emergencyStopUI();
-        setTimeout(() => showScoreModal('fail', '安全红线！一票否决！', '故障未在3秒内拍急停！\n直接0分！'), 500);
-      }
-    }
-  }, 1000);
-}
-
-// ===== 紧急停止 =====
-function handleEStop() {
-  if (state.faultTriggered && !state.estopReacted) {
-    state.estopReacted = true;
-    clearInterval(state.estopTimer);
-    document.getElementById('estop-timer-display').style.display = 'none';
-    document.getElementById('fault-overlay').classList.remove('visible');
-    btnStop.classList.remove('ts-btn-estop-alert');
-    emergencyStop();
-    showToast('故障已响应，设备已停止', 'success');
-    return;
-  }
-  emergencyStop();
-}
-function emergencyStop() {
-  state.running = false;
-  if (state.animFrame) cancelAnimationFrame(state.animFrame);
-  if (state.evalTimer) clearTimeout(state.evalTimer);
-  if (state.postFeedFaultTimer) clearTimeout(state.postFeedFaultTimer);
-  if (state.estopTimer) clearInterval(state.estopTimer);
-  emergencyStopUI();
-}
-function emergencyStopUI() {
-  btnStart.disabled = false;
-  document.getElementById('status-text').textContent = '停止';
-  document.getElementById('status-dot').className = 'status-dot stopped';
-  drumOverlay.classList.remove('visible');
-  drumOverlay.style.boxShadow = '';
-  closeDrumModal();
-  document.getElementById('feed-hotspot').style.display = 'none';
-  document.getElementById('feed-overlay').classList.remove('visible');
-  document.getElementById('fault-overlay').classList.remove('visible');
-  btnStop.classList.remove('ts-btn-estop-alert');
-  document.getElementById('estop-timer-display').style.display = 'none';
-  screenOverlay.className = 'screen-overlay';
-  state.currentSpeed = 0;
-  state.currentTemp = 25;
-  updateDisplay();
-  if (state.phase === 'heating' && !state.feedDone) {
-    setTimeout(() => showCleanupPhase(), 1500);
-  }
-}
-
-// ===== 仿真主循环 =====
+// ============================================================
+// 仿真主循环
+// ============================================================
 function simulate(timestamp) {
   if (!state.running) return;
   let dt = (timestamp - state.lastTime) / 1000;
@@ -1223,24 +1354,33 @@ function spawnSmoke() {
 
 let lowSpeedLogged = false;
 function checkLowSpeedPenalty() {
-  if (state.currentTemp >= 150 && state.targetSpeed < 20 && !lowSpeedLogged) {
+  const recipe = HERB_RECIPES[state.selectedHerb];
+  const minSpeed = recipe ? recipe.speedMin : 20;
+  if (state.currentTemp >= 150 && state.targetSpeed < minSpeed && !lowSpeedLogged) {
     lowSpeedLogged = true;
-    addDeduction('转速过低（<' + state.targetSpeed + ' r/min）→ 受热不均/局部焦化', -5);
+    addDeduction('转速过低（' + state.targetSpeed + ' r/min）→ 受热不均/局部焦化', -5);
+    state.scoreState.paramErrors.push({ type: 'low_speed', value: state.targetSpeed, min: minSpeed });
   }
 }
 let overtempLogged = false;
 function checkOvertempPenalty() {
-  if (state.targetTemp > 250 && !overtempLogged) {
+  const recipe = HERB_RECIPES[state.selectedHerb];
+  const maxTemp = recipe ? recipe.tempMax : 250;
+  if (state.targetTemp > maxTemp && !overtempLogged) {
     overtempLogged = true;
     addDeduction('目标温度过高（' + state.targetTemp + '℃）→ 超温保护/整锅焦化', -10);
+    state.scoreState.paramErrors.push({ type: 'overtemp', value: state.targetTemp, max: maxTemp });
   }
 }
 
-// ===== 投药时机 =====
+// ============================================================
+// 投药时机（QTE 机制）
+// ============================================================
 function checkFeedTiming() {
   if (!state.feedPrompted && state.currentTemp > 220) {
     state.feedPrompted = true;
     state.feedDelay = Math.round((state.simTime - (180 - 25) / 5) * 10) / 10;
+    state.scoreState.feedTiming = 'missed_overtemp';
     emergencyStop();
     addDeduction('错失投药时机（温度超过220℃）', -10);
     showToast('错失投药时机！温度超过220℃', 'error');
@@ -1254,60 +1394,218 @@ function checkFeedTiming() {
     document.getElementById('feed-hotspot').style.display = 'block';
     showToast('麸下烟起！请点击料斗投药！', 'warning');
 
-    state.evalTimer = setTimeout(() => {
-      if (!state.feedDone && state.running) {
-        state.feedDelay = 5;
-        emergencyStop();
-        addDeduction('错失投药时机（5秒内未投药）', -10);
-        showToast('错失投药时机（5秒内未投药）', 'error');
-        setTimeout(() => showScoreModal('fail', '操作违规！', '错失投药时机（5秒内未投药）\n扣 10 分！'), 500);
-      }
-    }, 5000);
+    // 开启 QTE 5秒倒计时
+    startQteCountdown(5);
   }
 }
 
-// ===== 虚拟投药 =====
+// QTE 投药倒计时（5秒窗口可视化）
+function startQteCountdown(seconds) {
+  const qteEl = document.getElementById('qte-countdown');
+  const timerEl = document.getElementById('qte-timer');
+  const barFill = document.getElementById('qte-bar-fill');
+  qteEl.classList.add('visible');
+
+  let remaining = seconds;
+  timerEl.textContent = remaining.toFixed(1);
+  barFill.style.width = '100%';
+
+  state.qteInterval = setInterval(() => {
+    remaining -= 0.1;
+    if (remaining <= 0) {
+      remaining = 0;
+      clearInterval(state.qteInterval);
+    }
+    timerEl.textContent = remaining.toFixed(1);
+    barFill.style.width = (remaining / seconds * 100) + '%';
+
+    if (remaining <= 0 && !state.feedDone && state.running) {
+      state.feedDelay = 5;
+      state.scoreState.feedTiming = 'timeout';
+      hideQteCountdown();
+      emergencyStop();
+      addDeduction('错失投药时机（5秒内未投药）', -10);
+      showToast('错失投药时机（5秒内未投药）', 'error');
+      setTimeout(() => showScoreModal('fail', '操作违规！', '错失投药时机（5秒内未投药）\n扣 10 分！'), 500);
+    }
+  }, 100);
+}
+
+function hideQteCountdown() {
+  document.getElementById('qte-countdown').classList.remove('visible');
+  if (state.qteInterval) clearInterval(state.qteInterval);
+}
+
+// 提前投药（温度 < 180℃）
+function attemptEarlyFeed() {
+  state.scoreState.earlyFeedAttempt = true;
+  addDeduction('火候未到提前投药（温度 < 180℃）', -15);
+  showToast('火候未到！当前温度 ' + Math.round(state.currentTemp) + '℃，提前投药扣15分！', 'error');
+}
+
+// ============================================================
+// 虚拟投药
+// ============================================================
 function feedMedicine() {
-  if (state.phase !== 'heating') return;
+  if (state.phase !== PHASE.HEATING) return;
+
+  // 提前投药惩罚
+  if (state.currentTemp < 180) {
+    attemptEarlyFeed();
+    return; // 不继续执行投药流程，让学生重新等到180℃
+  }
+
   state.feedDone = true;
   state.feedTempAtMoment = state.currentTemp;
+  state.scoreState.feedTiming = state.feedDelay <= 5 ? 'on_time' : 'late';
   document.getElementById('feed-hotspot').style.display = 'none';
   document.getElementById('feed-overlay').classList.remove('visible');
   state.feedDelay = Math.round((Date.now() - state.feedPromptTime) / 1000 * 10) / 10;
+  hideQteCountdown();
 
-  const tempOk = state.targetTemp >= 180 && state.targetTemp <= 220;
-  const speedOk = state.targetSpeed >= 20 && state.targetSpeed <= 30;
+  // 参数验证（使用药材配方标准）
+  const recipe = HERB_RECIPES[state.selectedHerb];
+  const tempOk = recipe
+    ? (state.targetTemp >= recipe.tempMin && state.targetTemp <= recipe.tempMax)
+    : (state.targetTemp >= 180 && state.targetTemp <= 220);
+  const speedOk = recipe
+    ? (state.targetSpeed >= recipe.speedMin && state.targetSpeed <= recipe.speedMax)
+    : (state.targetSpeed >= 20 && state.targetSpeed <= 30);
 
   if (!tempOk) {
     emergencyStop();
-    addDeduction('目标温度不在标准范围 (180-220℃)', -10);
+    addDeduction('目标温度不在标准范围', -10);
     showToast('温度参数不达标！', 'error');
-    setTimeout(() => showScoreModal('fail', '操作违规！', '目标温度不在标准范围 (180-220℃)\n当前: ' + state.targetTemp + '℃\n扣 10 分！'), 500);
+    setTimeout(() => showScoreModal('fail', '操作违规！', '目标温度不在标准范围 (' + (recipe ? recipe.tempMin : 180) + '-' + (recipe ? recipe.tempMax : 220) + '℃)\n当前: ' + state.targetTemp + '℃\n扣 10 分！'), 500);
     return;
   }
   if (!speedOk) {
     emergencyStop();
-    addDeduction('转速不在标准范围 (20-30 r/min)', -10);
+    addDeduction('转速不在标准范围', -10);
     showToast('转速参数不达标！', 'error');
-    setTimeout(() => showScoreModal('fail', '操作违规！', '转速不在标准范围 (20-30 r/min)\n当前: ' + state.targetSpeed + ' r/min\n扣 10 分！'), 500);
+    setTimeout(() => showScoreModal('fail', '操作违规！', '转速不在标准范围 (' + (recipe ? recipe.speedMin : 20) + '-' + (recipe ? recipe.speedMax : 30) + ' r/min)\n当前: ' + state.targetSpeed + ' r/min\n扣 10 分！'), 500);
     return;
   }
 
   showToast('投药成功！等待炮制完成...', 'success');
-  if (Math.random() < 0.5) schedulePostFeedFault();
+  // 投药后30%概率触发故障
+  if (Math.random() < 0.3) schedulePostFeedFault();
+
+  // 进入炮制阶段
+  state.phase = PHASE.COOKING;
+  document.getElementById('status-text').textContent = '炮制中';
+  document.getElementById('status-dot').className = 'status-dot cooking';
+
   state.evalTimer = setTimeout(() => {
     if (state.running) {
       state.running = false;
       if (state.animFrame) cancelAnimationFrame(state.animFrame);
       enterCoolingPhase();
-      setTimeout(() => showToast('炮制成功！进入自然降温', 'success'), 500);
+      setTimeout(() => showToast('炮制完成！进入自然降温', 'success'), 500);
     }
   }, 10000);
 }
 
-// ===== 自然降温 =====
+// ============================================================
+// 故障模拟（投药后触发）
+// ============================================================
+function schedulePostFeedFault() {
+  state.postFeedFaultTimer = setTimeout(() => {
+    if (!state.running || state.faultTriggered) return;
+    triggerFault();
+  }, 3000 + Math.random() * 5000);
+}
+
+function triggerFault() {
+  state.faultTriggered = true;
+  state.scoreState.emergencyTriggered = true;
+  const faults = [
+    { type: 'coil_overheat', text: '线圈过热报警！' },
+    { type: 'drum_jam', text: '滚筒电机过载！' },
+  ];
+  const fault = faults[Math.floor(Math.random() * 2)];
+  state.faultType = fault.type;
+  document.getElementById('fault-text').textContent = '⚠ ' + fault.text;
+  document.getElementById('fault-overlay').classList.add('visible');
+  btnStop.classList.add('ts-btn-estop-alert');
+  document.getElementById('estop-timer-display').style.display = 'block';
+
+  let countdown = 3;
+  document.getElementById('estop-countdown').textContent = countdown;
+  state.estopReacted = false;
+  showToast('设备故障！3秒内拍急停！', 'error');
+
+  state.estopTimer = setInterval(() => {
+    countdown--;
+    document.getElementById('estop-countdown').textContent = Math.max(0, countdown);
+    if (countdown <= 0) {
+      clearInterval(state.estopTimer);
+      if (!state.estopReacted && state.running) {
+        state.running = false;
+        if (state.animFrame) cancelAnimationFrame(state.animFrame);
+        state.scoreState.emergencyReacted = false;
+        addDeduction('故障响应超时（未在3秒内拍急停）', -100);
+        emergencyStopUI();
+        setTimeout(() => showScoreModal('fail', '安全红线！一票否决！', '故障未在3秒内拍急停！\n直接0分！'), 500);
+      }
+    }
+  }, 1000);
+}
+
+// ============================================================
+// 紧急停止
+// ============================================================
+function handleEStop() {
+  if (state.faultTriggered && !state.estopReacted) {
+    state.estopReacted = true;
+    state.scoreState.emergencyReacted = true;
+    clearInterval(state.estopTimer);
+    document.getElementById('estop-timer-display').style.display = 'none';
+    document.getElementById('fault-overlay').classList.remove('visible');
+    btnStop.classList.remove('ts-btn-estop-alert');
+    emergencyStop();
+    showToast('故障已响应，设备已停止', 'success');
+    return;
+  }
+  emergencyStop();
+}
+
+function emergencyStop() {
+  state.running = false;
+  if (state.animFrame) cancelAnimationFrame(state.animFrame);
+  if (state.evalTimer) clearTimeout(state.evalTimer);
+  if (state.postFeedFaultTimer) clearTimeout(state.postFeedFaultTimer);
+  if (state.estopTimer) clearInterval(state.estopTimer);
+  hideQteCountdown();
+  emergencyStopUI();
+}
+
+function emergencyStopUI() {
+  btnStart.disabled = false;
+  document.getElementById('status-text').textContent = '停止';
+  document.getElementById('status-dot').className = 'status-dot stopped';
+  drumOverlay.classList.remove('visible');
+  drumOverlay.style.boxShadow = '';
+  closeDrumModal();
+  document.getElementById('feed-hotspot').style.display = 'none';
+  document.getElementById('feed-overlay').classList.remove('visible');
+  document.getElementById('fault-overlay').classList.remove('visible');
+  btnStop.classList.remove('ts-btn-estop-alert');
+  document.getElementById('estop-timer-display').style.display = 'none';
+  screenOverlay.className = 'screen-overlay';
+  state.currentSpeed = 0;
+  state.currentTemp = 25;
+  updateDisplay();
+  if (state.phase === PHASE.HEATING && !state.feedDone) {
+    setTimeout(() => showCleanupPhase(), 1500);
+  }
+}
+
+// ============================================================
+// 阶段5：自然降温
+// ============================================================
 function enterCoolingPhase() {
-  state.phase = 'cooling';
+  state.phase = PHASE.COOLING;
   state.coolingPhase = true;
   state.coolingStartTemp = state.currentTemp;
   state.coolingStartTime = state.simTime;
@@ -1345,12 +1643,14 @@ function enterCoolingPhase() {
   state.animFrame = requestAnimationFrame(coolDown);
 }
 
-// ===== 清场阶段：设备热点交互 =====
+// ============================================================
+// 清场阶段
+// ============================================================
 const CLEAN_NAMES = ['切断电源', '滚筒散热', '清空物料', '清扫滚筒', '悬挂标牌'];
 const CLEAN_HOTSPOT_IDS = ['clean-hotspot-power', 'clean-hotspot-cool', 'clean-hotspot-empty', 'clean-hotspot-sweep', 'clean-hotspot-sign'];
 
 function showCleanupPhase() {
-  state.phase = 'cleaning';
+  state.phase = PHASE.CLEANING;
   state.cleanupStep = 1;
   document.getElementById('cleanup-panel').classList.add('visible');
   document.getElementById('bottom-hint').textContent = '请按照顺序在设备上点击热点完成清场';
@@ -1359,7 +1659,6 @@ function showCleanupPhase() {
 }
 
 function updateCleanupUI() {
-  // 更新面板状态
   for (let i = 1; i <= 5; i++) {
     const el = document.getElementById('clean-step-' + i);
     el.className = 'cleanup-step-indicator';
@@ -1367,8 +1666,6 @@ function updateCleanupUI() {
     if (i === state.cleanupStep) el.classList.add('active');
     el.querySelector('.step-icon').textContent = i < state.cleanupStep ? '✓' : i;
   }
-
-  // 显示/隐藏清场热点
   CLEAN_HOTSPOT_IDS.forEach((id, idx) => {
     const el = document.getElementById(id);
     if (idx + 1 < state.cleanupStep) {
@@ -1388,6 +1685,7 @@ function updateCleanupUI() {
 function doCleanup(step) {
   if (step !== state.cleanupStep) {
     showToast('请按顺序执行清场步骤！', 'error');
+    state.scoreState.cleanupOrderError = true;
     addDeduction('清场顺序错误', -5);
     return;
   }
@@ -1402,13 +1700,12 @@ function doCleanup(step) {
     state.cleanupStep = step + 1;
     updateCleanupUI();
   } else {
-    // 全部完成
     setTimeout(() => {
       document.getElementById('cleanup-panel').classList.remove('visible');
       CLEAN_HOTSPOT_IDS.forEach(id => {
         document.getElementById(id).style.display = 'none';
       });
-      state.phase = 'finished';
+      state.phase = PHASE.FINISHED;
       document.getElementById('status-text').textContent = '已完成';
       document.getElementById('status-dot').className = 'status-dot idle';
       document.getElementById('report-hotspot').style.display = 'block';
@@ -1418,18 +1715,19 @@ function doCleanup(step) {
   }
 }
 
-// ===== 评分与记录 =====
-function addDeduction(reason, points) {
-  state.score += points;
-  state.deductions.push({ reason, points });
-}
-
+// ============================================================
+// 报告与评分
+// ============================================================
 function generateReport() {
   const now = new Date();
   const ts = now.toLocaleString('zh-CN');
+  const recipe = HERB_RECIPES[state.selectedHerb];
+  const herbDisplayName = recipe ? recipe.name : (state.herbName || '未选择');
+  const finalScore = Math.max(0, state.baseScore);
+
   state.recordData = {
     examId: 'TCM-' + Date.now(),
-    task: '麸炒枳壳',
+    task: herbDisplayName,
     timestamp: ts,
     parameters: { targetTemp: state.targetTemp, targetSpeed: state.targetSpeed },
     results: {
@@ -1438,24 +1736,26 @@ function generateReport() {
       feedDelay: state.feedDelay,
       totalDuration: Math.round(state.simTime * 10) / 10,
       gmpConfirmed: state.gmpConfirmed,
+      gmpSkipped: state.gmpSkipped,
       faultTriggered: state.faultTriggered,
       estopReacted: state.estopReacted,
     },
-    scoring: { baseScore: 100, deductions: state.deductions, finalScore: Math.max(0, state.score) },
+    scoring: { baseScore: 100, deductions: state.deductions, finalScore },
   };
+
   let html = '<table class="report-table">';
   html += '<tr><th colspan="2">基本信息</th></tr>';
   html += '<tr><td>编号</td><td>' + state.recordData.examId + '</td></tr>';
-  html += '<tr><td>任务</td><td>' + state.recordData.task + '</td></tr>';
+  html += '<tr><td>任务</td><td>' + herbDisplayName + '</td></tr>';
   html += '<tr><td>时间</td><td>' + ts + '</td></tr>';
   html += '<tr><th colspan="2">参数设定</th></tr>';
   html += '<tr><td>目标温度</td><td>' + state.targetTemp + '℃</td></tr>';
   html += '<tr><td>目标转速</td><td>' + state.targetSpeed + ' r/min</td></tr>';
-  html += '<tr><td>GMP确认</td><td>' + (state.gmpConfirmed ? '✅' : '❌') + '</td></tr>';
+  html += '<tr><td>GMP确认</td><td>' + (state.gmpConfirmed ? '✅' : (state.gmpSkipped ? '⚠️ 跳过（-5分）' : '❌')) + '</td></tr>';
   html += '<tr><th colspan="2">操作结果</th></tr>';
   html += '<tr><td>最高温度</td><td>' + Math.round(state.maxTempReached) + '℃</td></tr>';
   html += '<tr><td>投药温度</td><td>' + Math.round(state.feedTempAtMoment) + '℃</td></tr>';
-  html += '<tr><td>投药延误</td><td>' + state.feedDelay + '秒</td></tr>';
+  html += '<tr><td>投药响应</td><td>' + state.feedDelay + '秒</td></tr>';
   html += '<tr><td>总用时</td><td>' + Math.round(state.simTime) + '秒</td></tr>';
   html += '<tr><td>故障响应</td><td>' + (state.faultTriggered ? (state.estopReacted ? '✅' : '❌') : '无') + '</td></tr>';
   if (state.deductions.length > 0) {
@@ -1465,7 +1765,7 @@ function generateReport() {
     });
   }
   html += '<tr><th colspan="2">总分</th></tr>';
-  html += '<tr><td>最终得分</td><td class="score-total">' + Math.max(0, state.score) + ' / 100</td></tr>';
+  html += '<tr><td>最终得分</td><td class="score-total">' + finalScore + ' / 100</td></tr>';
   html += '</table>';
   document.getElementById('report-content').innerHTML = html;
 }
