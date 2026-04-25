@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>电磁加热多功能炒药机控制系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+* { box-sizing: border-box; }
+body {
+  background: #111;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  overflow-x: hidden;
+}
+
+/* ===== 设备图全屏 ===== */
+.machine-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+.machine-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ===== 所有热点都叠加在设备图上 ===== */
+.hotspot {
+  position: absolute;
+  z-index: 10;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.hotspot.glow {
+  border: 2px solid rgba(46, 213, 115, 0.8);
+  box-shadow: 0 0 20px rgba(46, 213, 115, 0.4);
+  animation: hotspotPulse 1.5s ease-in-out infinite;
+}
+.hotspot.glow.warning {
+  border-color: rgba(255, 165, 2, 0.9);
+  box-shadow: 0 0 20px rgba(255, 165, 2, 0.5);
+  animation: hotspotPulseWarn 0.8s ease-in-out infinite;
+}
+.hotspot.glow.danger {
+  border-color: rgba(255, 71, 87, 0.9);
+  box-shadow: 0 0 20px rgba(255, 71, 87, 0.6);
+  animation: hotspotPulseDanger 0.5s ease-in-out infinite;
+}
+.hotspot.done {
+  border-color: rgba(46, 213, 115, 0.6);
+  background: rgba(46, 213, 115, 0.2);
+  border-width: 2px;
+  animation: none;
+  cursor: default;
+}
+.hotspot .hotspot-label {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 9px;
+  color: #fff;
+  text-shadow: 0 0 4px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+.hotspot.glow .hotspot-label { color: #2ed573; }
+.hotspot.glow.warning .hotspot-label { color: #ffa502; }
+.hotspot.glow.danger .hotspot-label { color: #ff4757; }
+@keyframes hotspotPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(46, 213, 115, 0.3); }
+  50% { box-shadow: 0 0 28px rgba(46, 213, 115, 0.7); }
+}
+@keyframes hotspotPulseWarn {
+  0%, 100% { box-shadow: 0 0 12px rgba(255, 165, 2, 0.4); }
+  50% { box-shadow: 0 0 28px rgba(255, 165, 2, 0.8); }
+}
+@keyframes hotspotPulseDanger {
+  0%, 100% { box-shadow: 0 0 12px rgba(255, 71, 87, 0.4); }
+  50% { box-shadow: 0 0 32px rgba(255, 71, 87, 0.9); }
+}
+
+/* ===== 滚筒观察窗 ===== */
+.drum-overlay {
+  position: absolute;
+  display: none;
+  overflow: hidden;
+  z-index: 5;
+  border-radius: 50%;
+}
+.drum-overlay.visible { display: block; }
+.drum-overlay img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+}
+
+/* ===== 白烟动画 ===== */
+.smoke-container {
+  position: absolute;
+  pointer-events: none;
+  z-index: 6;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
+.smoke-particle {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle, rgba(200,200,200,0.4) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: smokeRise 2s ease-out forwards;
+}
+@keyframes smokeRise {
+  0% { opacity: 0.8; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-80px) scale(2); }
+}
+
+/* ===== 红色警戒滤镜 ===== */
+.screen-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8;
+  transition: background 0.5s;
+}
+.screen-overlay.danger-zone {
+  background: radial-gradient(ellipse at center, rgba(255,0,0,0.1) 0%, transparent 70%);
+}
+
+/* ===== 触摸屏覆盖层 ===== */
+.touchscreen {
+  position: absolute;
+  z-index: 10;
+  background: rgba(5, 5, 20, 0.88);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  padding: 6px;
+  backdrop-filter: blur(2px);
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.ts-header {
+  text-align: center;
+  color: #00d4ff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 3px;
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.4);
+}
+
+.ts-status {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+.ts-status-item {
+  text-align: center;
+  background: rgba(0,0,0,0.5);
+  border-radius: 3px;
+  padding: 2px 1px;
+}
+.ts-status-item .label {
+  font-size: 6px;
+  color: #888;
+  margin-bottom: 0;
+}
+.ts-status-item .value {
+  font-family: 'Courier New', monospace;
+  color: #00d4ff;
+  font-size: 11px;
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.5);
+}
+.ts-status-item .status-text {
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.status-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 1px;
+  vertical-align: middle;
+}
+.status-dot.idle { background: #ffa502; }
+.status-dot.running { background: #2ed573; animation: blink 1s infinite; }
+.status-dot.stopped { background: #ff4757; }
+.status-dot.cooling { background: #00d4ff; animation: blink 1.5s infinite; }
+.status-dot.cleaning { background: #a855f7; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.ts-task {
+  font-size: 6px;
+  color: #ffa502;
+  background: rgba(255, 165, 2, 0.1);
+  border: 1px solid rgba(255, 165, 2, 0.3);
+  border-radius: 3px;
+  padding: 2px 4px;
+  margin-bottom: 3px;
+  line-height: 1.3;
+}
+
+.ts-slider-group {
+  margin-bottom: 3px;
+}
+.ts-slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 6px;
+  color: #aaa;
+  margin-bottom: 1px;
+}
+.ts-slider-label .val {
+  color: #00d4ff;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  font-size: 8px;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #3a3a3e;
+  border-radius: 3px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.5);
+  cursor: pointer;
+}
+
+.ts-btn {
+  border: none;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+  width: 100%;
+}
+.ts-btn:active { transform: scale(0.95); }
+.ts-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ts-btn-start {
+  background: linear-gradient(135deg, #2ed573, #1a9c4c);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(46, 213, 115, 0.3);
+}
+.ts-btn-stop {
+  background: linear-gradient(135deg, #ff4757, #c0392b);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3);
+}
+.ts-btn-estop-alert {
+  animation: estopFlash 0.4s ease-in-out infinite;
+}
+@keyframes estopFlash {
+  0%, 100% { box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3); }
+  50% { box-shadow: 0 2px 20px rgba(255, 71, 87, 0.9); }
+}
+.ts-btn-feed {
+  background: linear-gradient(135deg, #ffa502, #cc7a00);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(255, 165, 2, 0.5);
+  animation: feedPulse 0.8s ease-in-out infinite;
+}
+@keyframes feedPulse {
+  0%, 100% { box-shadow: 0 2px 10px rgba(255, 165, 2, 0.5); }
+  50% { box-shadow: 0 2px 18px rgba(255, 165, 2, 0.9); }
+}
+
+#chart-container {
+  background: rgba(0,0,0,0.5);
+  border-radius: 3px;
+  border: 1px solid rgba(0, 212, 255, 0.15);
+}
+
+/* ===== 清场步骤指示器 ===== */
+.cleanup-steps {
+  position: absolute;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: rgba(5, 5, 20, 0.9);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 6px;
+  backdrop-filter: blur(2px);
+  display: none;
+}
+.cleanup-steps.visible { display: flex; }
+.cleanup-step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: all 0.3s;
+}
+.cleanup-step-indicator.active {
+  border-color: rgba(0, 212, 255, 0.5);
+  background: rgba(0, 212, 255, 0.1);
+  color: #00d4ff;
+  font-weight: 700;
+}
+.cleanup-step-indicator.done {
+  border-color: rgba(46, 213, 115, 0.4);
+  background: rgba(46, 213, 115, 0.1);
+  color: #2ed573;
+}
+.cleanup-step-indicator .step-icon {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.cleanup-step-indicator.active .step-icon {
+  background: rgba(0, 212, 255, 0.3);
+  color: #00d4ff;
+}
+.cleanup-step-indicator.done .step-icon {
+  background: #2ed573;
+  color: #fff;
+}
+
+/* ===== 底部提示 Toast ===== */
+.toast-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  pointer-events: none;
+}
+.toast {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  animation: toastIn 0.3s ease-out, toastOut 0.5s ease-in 2s forwards;
+  max-width: 90vw;
+  pointer-events: none;
+}
+.toast.success {
+  background: rgba(46, 213, 115, 0.9);
+  color: #fff;
+  border: 1px solid #2ed573;
+}
+.toast.error {
+  background: rgba(255, 71, 87, 0.9);
+  color: #fff;
+  border: 1px solid #ff4757;
+}
+.toast.warning {
+  background: rgba(255, 165, 2, 0.9);
+  color: #fff;
+  border: 1px solid #ffa502;
+}
+.toast.info {
+  background: rgba(0, 212, 255, 0.9);
+  color: #fff;
+  border: 1px solid #00d4ff;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ===== 滚筒放大弹窗 ===== */
+.drum-modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.drum-modal.active { display: flex; }
+.drum-modal img {
+  width: 70vw; height: 70vw;
+  max-width: 350px; max-height: 350px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 212, 255, 0.5);
+  object-fit: cover;
+}
+.drum-modal .close-btn {
+  position: absolute; top: 16px; right: 16px;
+  color: #fff; font-size: 28px; cursor: pointer;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+}
+
+/* ===== 底部信息栏 ===== */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10, 10, 15, 0.95);
+  border-top: 1px solid rgba(0, 212, 255, 0.2);
+  padding: 6px 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.bottom-bar .info-text {
+  font-size: 9px;
+  color: #888;
+}
+
+/* ===== 报告弹窗（最小化，仅用于展示） ===== */
+.report-modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+.report-modal.active { display: flex; }
+.report-modal .modal-box {
+  max-width: 95vw;
+  width: 380px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: linear-gradient(135deg, #1a1a2e, #1e1e1e);
+  border: 2px solid rgba(0, 212, 255, 0.4);
+  border-radius: 16px;
+  padding: 20px 16px;
+}
+.report-modal .modal-title {
+  color: #00d4ff;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.report-table th {
+  background: rgba(0, 212, 255, 0.15);
+  color: #00d4ff;
+  padding: 6px 8px;
+  text-align: left;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+.report-table td {
+  padding: 6px 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #ccc;
+}
+.report-table tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
+.report-table .score-penalty { color: #ff4757; }
+.report-table .score-total { color: #ffa502; font-weight: 700; }
+
+/* ===== 判分弹窗 ===== */
+.score-modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.score-modal.active { display: flex; }
+.score-modal .modal-box {
+  max-width: 90vw;
+  width: 320px;
+  border-radius: 14px;
+  padding: 28px 20px;
+  text-align: center;
+}
+.score-modal.fail .modal-box {
+  background: linear-gradient(135deg, #2a1515, #1e1e1e);
+  border: 2px solid rgba(255, 71, 87, 0.6);
+}
+.score-modal.pass .modal-box {
+  background: linear-gradient(135deg, #152a15, #1e1e1e);
+  border: 2px solid rgba(46, 213, 115, 0.6);
+}
+.score-modal .modal-icon { font-size: 42px; margin-bottom: 10px; }
+.score-modal .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.score-modal.fail .modal-title { color: #ff4757; }
+.score-modal.pass .modal-title { color: #2ed573; }
+.score-modal .modal-desc { font-size: 13px; color: #ccc; line-height: 1.6; margin-bottom: 16px; white-space: pre-line; }
+.score-modal .modal-btn {
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  color: #fff; font-weight: 700; font-size: 14px;
+  padding: 10px 36px; border-radius: 8px; border: none;
+  cursor: pointer; letter-spacing: 1px;
+}
+
+/* ===== 故障报警 ===== */
+.fault-overlay {
+  position: absolute;
+  z-index: 15;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.fault-overlay.visible { display: flex; }
+.fault-text {
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  text-shadow: 0 0 10px rgba(255,0,0,0.8);
+  animation: faultFlash 0.5s ease-in-out infinite;
+  pointer-events: auto;
+  background: rgba(255, 0, 0, 0.7);
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 2px solid #ff0000;
+}
+@keyframes faultFlash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.estop-countdown {
+  color: #fff;
+  font-weight: 700;
+  font-size: 28px;
+  text-shadow: 0 0 10px rgba(255,0,0,0.8);
+  animation: countdownPulse 0.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes countdownPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+/* ===== 投药提示 ===== */
+.feed-overlay {
+  position: absolute;
+  z-index: 15;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.feed-overlay.visible { display: flex; }
+.feed-text {
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  text-shadow: 0 0 8px rgba(255, 165, 2, 0.8);
+  animation: feedFlash 0.6s ease-in-out infinite;
+  pointer-events: auto;
+  background: rgba(255, 165, 2, 0.7);
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 2px solid #ffa502;
+}
+@keyframes feedFlash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+</style>
+</head>
+<body>
+
+<!-- 屏幕红色滤镜 -->
+<div class="screen-overlay" id="screen-overlay"></div>
+
+<!-- Toast 提示条 -->
+<div class="toast-bar" id="toast-bar"></div>
+
+<!-- ===== 设备图 + 所有热点 ===== -->
+<div class="machine-wrapper" id="machine-wrapper">
+  <img src="bg_machine.png" alt="炒药机" class="machine-img" id="machine-img">
+
+  <!-- 滚筒观察窗 -->
+  <div class="drum-overlay" id="drum-overlay" onclick="openDrumModal()">
+    <img src="drum.png" alt="滚筒内部" id="drum-img">
+  </div>
+
+  <!-- 白烟 -->
+  <div class="smoke-container" id="smoke-container"></div>
+
+  <!-- ===== 热点：GMP检查点 ===== -->
+  <div class="hotspot" id="gmp-hotspot-1" onclick="clickGmpHotspot(1)" style="display:none;">
+    <span class="hotspot-label">① 设备清洁检查</span>
+  </div>
+  <div class="hotspot" id="gmp-hotspot-2" onclick="clickGmpHotspot(2)" style="display:none;">
+    <span class="hotspot-label">② 安全检查</span>
+  </div>
+  <div class="hotspot" id="gmp-hotspot-3" onclick="clickGmpHotspot(3)" style="display:none;">
+    <span class="hotspot-label">③ 冷却系统检查</span>
+  </div>
+
+  <!-- ===== 热点：故障报警 ===== -->
+  <div class="fault-overlay" id="fault-overlay">
+    <div class="fault-text" id="fault-text">⚠ 设备故障！</div>
+    <div class="estop-countdown" id="estop-countdown" style="margin-top:8px;">3</div>
+  </div>
+
+  <!-- ===== 热点：投药提示 ===== -->
+  <div class="feed-overlay" id="feed-overlay">
+    <div class="feed-text">⚠ 麸下烟起！请投药！</div>
+  </div>
+
+  <!-- ===== 热点：投药按钮（出现在料斗区域） ===== -->
+  <div class="hotspot warning" id="feed-hotspot" onclick="feedMedicine()" style="display:none;">
+    <span class="hotspot-label">投药</span>
+  </div>
+
+  <!-- ===== 触摸屏 ===== -->
+  <div class="touchscreen" id="touchscreen">
+    <div class="ts-header">EC-RC-800</div>
+
+    <div class="ts-task" id="ts-task">
+      <b>麸炒枳壳</b> 温度180-220℃ 转速20-30r/min
+    </div>
+
+    <div class="ts-status">
+      <div class="ts-status-item">
+        <div class="label">温度</div>
+        <div class="value" id="disp-temp">25℃</div>
+      </div>
+      <div class="ts-status-item">
+        <div class="label">转速</div>
+        <div class="value" id="disp-speed">0</div>
+      </div>
+      <div class="ts-status-item">
+        <div class="label">状态</div>
+        <div class="status-text"><span class="status-dot idle" id="status-dot"></span><span id="status-text">待机</span></div>
+      </div>
+    </div>
+
+    <div id="estop-timer-display" style="display:none; text-align:center; font-size:7px; color:#ff4757; margin-bottom:2px;">
+      ⚠ <span id="estop-countdown">3</span>秒内拍急停！
+    </div>
+
+    <div class="ts-slider-group">
+      <div class="ts-slider-label"><span>目标温度</span><span class="val"><span id="temp-val">--</span>℃</span></div>
+      <input type="range" id="slider-temp" min="0" max="300" value="0" oninput="updateTemp(this.value)">
+    </div>
+    <div class="ts-slider-group">
+      <div class="ts-slider-label"><span>滚筒转速</span><span class="val"><span id="speed-val">--</span> r/min</span></div>
+      <input type="range" id="slider-speed" min="0" max="50" value="0" oninput="updateSpeed(this.value)">
+    </div>
+
+    <div style="margin-bottom:3px;">
+      <div style="font-size:6px; color:#888; margin-bottom:1px;">升温曲线</div>
+      <div id="chart-container" style="height:40px;"></div>
+    </div>
+
+    <button class="ts-btn ts-btn-start" id="btn-start" onclick="startHeating()" disabled style="margin-bottom:2px;">启动</button>
+    <button class="ts-btn ts-btn-stop" id="btn-stop" onclick="handleEStop()">紧急停止</button>
+  </div>
+
+  <!-- ===== 清场步骤面板 ===== -->
+  <div class="cleanup-steps" id="cleanup-panel">
+    <div class="cleanup-step-indicator" id="clean-step-1"><div class="step-icon">1</div>切断电源</div>
+    <div class="cleanup-step-indicator" id="clean-step-2"><div class="step-icon">2</div>滚筒散热</div>
+    <div class="cleanup-step-indicator" id="clean-step-3"><div class="step-icon">3</div>清空物料</div>
+    <div class="cleanup-step-indicator" id="clean-step-4"><div class="step-icon">4</div>清扫滚筒</div>
+    <div class="cleanup-step-indicator" id="clean-step-5"><div class="step-icon">5</div>悬挂标牌</div>
+  </div>
+
+  <!-- ===== 清场热点 ===== -->
+  <div class="hotspot glow" id="clean-hotspot-power" onclick="doCleanup(1)" style="display:none;">
+    <span class="hotspot-label">切断电源</span>
+  </div>
+  <div class="hotspot glow" id="clean-hotspot-cool" onclick="doCleanup(2)" style="display:none;">
+    <span class="hotspot-label">滚筒散热</span>
+  </div>
+  <div class="hotspot glow" id="clean-hotspot-empty" onclick="doCleanup(3)" style="display:none;">
+    <span class="hotspot-label">清空物料</span>
+  </div>
+  <div class="hotspot glow" id="clean-hotspot-sweep" onclick="doCleanup(4)" style="display:none;">
+    <span class="hotspot-label">清扫滚筒</span>
+  </div>
+  <div class="hotspot glow" id="clean-hotspot-sign" onclick="doCleanup(5)" style="display:none;">
+    <span class="hotspot-label">悬挂标牌</span>
+  </div>
+
+  <!-- ===== 报告图标 ===== -->
+  <div class="hotspot" id="report-hotspot" onclick="showReport()" style="display:none;">
+    <span class="hotspot-label">查看报告</span>
+  </div>
+</div>
+
+<!-- ===== 底部信息栏 ===== -->
+<div class="bottom-bar" id="bottom-bar">
+  <span class="info-text" id="bottom-hint">请点击设备上的绿色热点开始检查</span>
+</div>
+
+<!-- ===== 滚筒放大 ===== -->
+<div class="drum-modal" id="drum-modal" onclick="closeDrumModal()">
+  <div class="close-btn">&times;</div>
+  <img src="drum.png" alt="滚筒内部放大">
+</div>
+
+<!-- ===== 报告弹窗 ===== -->
+<div class="report-modal" id="report-modal">
+  <div class="modal-box">
+    <div class="modal-title">数控设备参数设定记录单</div>
+    <div id="report-content"></div>
+    <button class="modal-btn" style="margin-top:12px; width:100%;" onclick="exportReport()">导出 JSON</button>
+    <button class="modal-btn" style="margin-top:6px; width:100%; background:linear-gradient(135deg,#2ed573,#1a9c4c);" onclick="document.getElementById('report-modal').classList.remove('active');">关闭</button>
+  </div>
+</div>
+
+<!-- ===== 判分弹窗 ===== -->
+<div class="score-modal" id="score-modal">
+  <div class="modal-box">
+    <div class="modal-icon" id="score-icon"></div>
+    <div class="modal-title" id="score-title"></div>
+    <div class="modal-desc" id="score-desc"></div>
+    <button class="modal-btn" onclick="closeScoreModal()">确 定</button>
+  </div>
+</div>
+
+<script>
+// ===== 状态管理 =====
+let state = {
+  running: false,
+  currentTemp: 25, targetTemp: 0,
+  currentSpeed: 0, targetSpeed: 0,
+  tempHistory: [], timeHistory: [],
+  simTime: 0, drumAngle: 0,
+  animFrame: null, lastTime: 0,
+  phase: 'idle',
+  feedPrompted: false, feedPromptTime: 0, feedDone: false, feedDelay: 0,
+  runningDuration: 0, evalTimer: null,
+  score: 100, deductions: [],
+  gmpChecks: { 1: false, 2: false, 3: false }, gmpConfirmed: false,
+  faultTriggered: false, faultType: null, postFeedFaultTimer: null,
+  estopTimer: null, estopReacted: false,
+  cleanupStep: 0,
+  coolingPhase: false, coolingStartTemp: 0, coolingStartTime: 0,
+  recordData: null, maxTempReached: 0, feedTempAtMoment: 0,
+};
+
+const drumOverlay = document.getElementById('drum-overlay');
+const drumImg = document.getElementById('drum-img');
+const btnStart = document.getElementById('btn-start');
+const btnStop = document.getElementById('btn-stop');
+const screenOverlay = document.getElementById('screen-overlay');
+const smokeContainer = document.getElementById('smoke-container');
+
+// ===== 百分比坐标系统（基于2752x1536原图） =====
+const P = {
+  // GMP热点：分布在设备三个关键区域
+  gmp1: { x: 28, y: 20, w: 8, h: 10 },  // 出料口/料槽附近 — 设备清洁
+  gmp2: { x: 50, y: 8, w: 6, h: 8 },    // 控制面板顶部 — 安全检查
+  gmp3: { x: 30, y: 55, w: 8, h: 10 },  // 底部电磁线圈 — 冷却系统
+
+  // 触摸屏
+  ts: { x: 73, y: 19, w: 18, h: 42 },
+
+  // 滚筒观察窗
+  drum: { x: 36, y: 32, w: 14, h: 14 },
+
+  // 投药热点（料斗区域）
+  feed: { x: 25, y: 5, w: 12, h: 12 },
+
+  // 故障报警（设备中部上方）
+  fault: { x: 40, y: 15, w: 20, h: 15 },
+
+  // 清场热点
+  cleanPower:   { x: 80, y: 25, w: 6, h: 8 },  // 电源开关
+  cleanCool:    { x: 45, y: 32, w: 10, h: 10 }, // 滚筒
+  cleanEmpty:   { x: 65, y: 50, w: 8, h: 10 },  // 出料口
+  cleanSweep:   { x: 40, y: 35, w: 8, h: 10 },  // 滚筒内部
+  cleanSign:    { x: 85, y: 45, w: 6, h: 8 },   // 设备侧面
+
+  // 清场面板位置
+  cleanPanel: { x: 5, y: 5, w: 22, h: 40 },
+
+  // 报告热点（控制面板下方）
+  report: { x: 85, y: 60, w: 6, h: 8 },
+};
+
+function calcPos(pct) {
+  const img = document.getElementById('machine-img');
+  const rect = img.getBoundingClientRect();
+  const naturalW = img.naturalWidth || 2752;
+  const naturalH = img.naturalHeight || 1536;
+  const scaleX = rect.width / naturalW;
+  const scaleY = rect.height / naturalH;
+  return {
+    left: rect.left + naturalW * pct.x / 100 * scaleX,
+    top: rect.top + naturalH * pct.y / 100 * scaleY,
+    width: naturalW * pct.w / 100 * scaleX,
+    height: naturalH * pct.h / 100 * scaleY,
+  };
+}
+
+function positionAll() {
+  const img = document.getElementById('machine-img');
+  const rect = img.getBoundingClientRect();
+  const naturalW = img.naturalWidth || 2752;
+  const naturalH = img.naturalHeight || 1536;
+  const scaleX = rect.width / naturalW;
+  const scaleY = rect.height / naturalH;
+
+  // 滚筒
+  const d = calcPos(P.drum);
+  drumOverlay.style.width = d.width + 'px';
+  drumOverlay.style.height = d.height + 'px';
+  drumOverlay.style.left = (d.left + d.width * 0.1) + 'px';
+  drumOverlay.style.top = d.top + 'px';
+
+  // 触摸屏
+  const t = calcPos(P.ts);
+  const ts = document.getElementById('touchscreen');
+  ts.style.left = t.left + 'px';
+  ts.style.top = t.top + 'px';
+  ts.style.width = t.width + 'px';
+  ts.style.height = t.height + 'px';
+
+  // GMP热点
+  [1,2,3].forEach(i => {
+    const p = calcPos(P['gmp' + i]);
+    const el = document.getElementById('gmp-hotspot-' + i);
+    el.style.left = (p.left + p.width * 0.1) + 'px';
+    el.style.top = (p.top + p.height * 0.1) + 'px';
+    el.style.width = (p.width * 0.8) + 'px';
+    el.style.height = (p.height * 0.8) + 'px';
+  });
+
+  // 投药热点
+  const f = calcPos(P.feed);
+  const fh = document.getElementById('feed-hotspot');
+  fh.style.left = (f.left + f.width * 0.1) + 'px';
+  fh.style.top = (f.top + f.height * 0.1) + 'px';
+  fh.style.width = (f.width * 0.8) + 'px';
+  fh.style.height = (f.height * 0.8) + 'px';
+
+  // 故障报警
+  const fa = calcPos(P.fault);
+  const fo = document.getElementById('fault-overlay');
+  fo.style.left = (fa.left + fa.width * 0.1) + 'px';
+  fo.style.top = (fa.top + fa.height * 0.1) + 'px';
+  fo.style.width = (fa.width * 0.8) + 'px';
+  fo.style.height = (fa.height * 0.8) + 'px';
+
+  // 清场面板
+  const cp = calcPos(P.cleanPanel);
+  const cPanel = document.getElementById('cleanup-panel');
+  cPanel.style.left = cp.left + 'px';
+  cPanel.style.top = cp.top + 'px';
+  cPanel.style.width = cp.width + 'px';
+
+  // 清场热点
+  const cleanMap = {
+    'clean-hotspot-power': P.cleanPower,
+    'clean-hotspot-cool': P.cleanCool,
+    'clean-hotspot-empty': P.cleanEmpty,
+    'clean-hotspot-sweep': P.cleanSweep,
+    'clean-hotspot-sign': P.cleanSign,
+  };
+  Object.entries(cleanMap).forEach(([id, p]) => {
+    const c = calcPos(p);
+    const el = document.getElementById(id);
+    el.style.left = (c.left + c.width * 0.1) + 'px';
+    el.style.top = (c.top + c.height * 0.1) + 'px';
+    el.style.width = (c.width * 0.8) + 'px';
+    el.style.height = (c.height * 0.8) + 'px';
+  });
+
+  // 报告热点
+  const r = calcPos(P.report);
+  const rh = document.getElementById('report-hotspot');
+  rh.style.left = (r.left + r.width * 0.1) + 'px';
+  rh.style.top = (r.top + r.height * 0.1) + 'px';
+  rh.style.width = (r.width * 0.8) + 'px';
+  rh.style.height = (r.height * 0.8) + 'px';
+}
+
+window.addEventListener('load', () => {
+  positionAll();
+  showGmpPhase();
+});
+window.addEventListener('resize', positionAll);
+
+// ===== ECharts =====
+const chartContainer = document.getElementById('chart-container');
+const chart = echarts.init(chartContainer);
+chart.setOption({
+  backgroundColor: 'transparent',
+  grid: { left: 20, right: 4, top: 2, bottom: 8 },
+  xAxis: { type: 'category', show: false },
+  yAxis: { type: 'value', show: false, min: 0, max: 300 },
+  series: [{
+    type: 'line', smooth: true, symbol: 'none',
+    lineStyle: { color: '#00d4ff', width: 1.5 },
+    areaStyle: {
+      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: 'rgba(0, 212, 255, 0.3)' },
+        { offset: 1, color: 'rgba(0, 212, 255, 0)' },
+      ])
+    },
+    data: [],
+  }],
+});
+window.addEventListener('resize', () => { chart.resize(); positionAll(); });
+
+// ===== Toast 提示 =====
+function showToast(msg, type) {
+  const bar = document.getElementById('toast-bar');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  bar.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// ===== GMP阶段：热点交互 =====
+function showGmpPhase() {
+  state.phase = 'gmp_confirm';
+  document.getElementById('bottom-hint').textContent = '请点击设备上的绿色热点完成GMP安全确认（共3项）';
+  [1,2,3].forEach(i => {
+    document.getElementById('gmp-hotspot-' + i).style.display = 'block';
+  });
+  showToast('请先检查设备清洁状态', 'info');
+}
+
+function clickGmpHotspot(num) {
+  if (state.phase !== 'gmp_confirm') return;
+  if (state.gmpChecks[num]) return;
+
+  state.gmpChecks[num] = true;
+  const el = document.getElementById('gmp-hotspot-' + num);
+  el.classList.remove('glow');
+  el.classList.add('done');
+
+  const msgs = {
+    1: '设备清洁检查完成 ✓',
+    2: '安全运行检查完成 ✓',
+    3: '冷却系统检查完成 ✓',
+  };
+  showToast(msgs[num], 'success');
+
+  if (state.gmpChecks[1] && state.gmpChecks[2] && state.gmpChecks[3]) {
+    state.gmpConfirmed = true;
+    state.phase = 'ready';
+    setTimeout(() => {
+      [1,2,3].forEach(i => {
+        document.getElementById('gmp-hotspot-' + i).style.display = 'none';
+      });
+      document.getElementById('bottom-hint').textContent = '设置参数后点击"启动"开始加热';
+      btnStart.disabled = false;
+      showToast('GMP确认完成，请设置参数并启动', 'success');
+    }, 800);
+  }
+}
+
+// ===== 参数设置 =====
+function updateTemp(v) {
+  state.targetTemp = parseInt(v);
+  document.getElementById('temp-val').textContent = v === '0' ? '--' : v;
+}
+function updateSpeed(v) {
+  state.targetSpeed = parseInt(v);
+  document.getElementById('speed-val').textContent = v === '0' ? '--' : v;
+}
+
+// ===== 启动加热 =====
+function startHeating() {
+  if (state.running) return;
+  if (state.targetTemp === 0 || state.targetSpeed === 0) {
+    showToast('请先设置目标温度和滚筒转速！', 'error');
+    return;
+  }
+  if (!state.gmpConfirmed) {
+    showToast('未完成GMP安全确认！', 'error');
+    addDeduction('GMP安全确认缺失', -20);
+    return;
+  }
+
+  state.running = true;
+  state.currentTemp = 25;
+  state.simTime = 0;
+  state.drumAngle = 0;
+  state.feedPrompted = false;
+  state.feedDone = false;
+  state.feedDelay = 0;
+  state.runningDuration = 0;
+  state.lastTime = performance.now();
+  state.tempHistory = [];
+  state.timeHistory = [];
+  state.phase = 'heating';
+  state.maxTempReached = 25;
+  lowSpeedLogged = false;
+  overtempLogged = false;
+
+  btnStart.disabled = true;
+  document.getElementById('status-text').textContent = '加热中';
+  document.getElementById('status-dot').className = 'status-dot running';
+
+  drumOverlay.classList.add('visible');
+
+  // 故障模拟在投药成功后触发（加热阶段不应被打断）
+  if (Math.random() < 0.5) schedulePostFeedFault();
+  showToast('设备启动，开始加热', 'info');
+  requestAnimationFrame(simulate);
+}
+
+// ===== 故障模拟 =====
+function scheduleFault() {
+  setTimeout(() => {
+    if (!state.running || state.faultTriggered) return;
+    triggerFault();
+  }, 8000 + Math.random() * 15000);
+}
+
+// 投药后故障（在炮制阶段触发，给学生应急停机会）
+function schedulePostFeedFault() {
+  state.postFeedFaultTimer = setTimeout(() => {
+    if (!state.running || state.faultTriggered) return;
+    triggerFault();
+  }, 3000 + Math.random() * 5000);
+}
+function triggerFault() {
+  state.faultTriggered = true;
+  const faults = [
+    { type: 'coil_overheat', text: '线圈过热报警！' },
+    { type: 'drum_jam', text: '滚筒卡死！' },
+  ];
+  const fault = faults[Math.floor(Math.random() * 2)];
+  state.faultType = fault.type;
+  document.getElementById('fault-text').textContent = '⚠ ' + fault.text;
+  document.getElementById('fault-overlay').classList.add('visible');
+  btnStop.classList.add('ts-btn-estop-alert');
+  document.getElementById('estop-timer-display').style.display = 'block';
+
+  let countdown = 3;
+  document.getElementById('estop-countdown').textContent = countdown;
+  state.estopReacted = false;
+  showToast('设备故障！3秒内拍急停！', 'error');
+
+  state.estopTimer = setInterval(() => {
+    countdown--;
+    document.getElementById('estop-countdown').textContent = Math.max(0, countdown);
+    if (countdown <= 0) {
+      clearInterval(state.estopTimer);
+      if (!state.estopReacted && state.running) {
+        state.running = false;
+        if (state.animFrame) cancelAnimationFrame(state.animFrame);
+        addDeduction('故障响应超时（未在3秒内拍急停）', -100);
+        emergencyStopUI();
+        setTimeout(() => showScoreModal('fail', '安全红线！一票否决！', '故障未在3秒内拍急停！\n直接0分！'), 500);
+      }
+    }
+  }, 1000);
+}
+
+// ===== 紧急停止 =====
+function handleEStop() {
+  if (state.faultTriggered && !state.estopReacted) {
+    state.estopReacted = true;
+    clearInterval(state.estopTimer);
+    document.getElementById('estop-timer-display').style.display = 'none';
+    document.getElementById('fault-overlay').classList.remove('visible');
+    btnStop.classList.remove('ts-btn-estop-alert');
+    emergencyStop();
+    showToast('故障已响应，设备已停止', 'success');
+    return;
+  }
+  emergencyStop();
+}
+function emergencyStop() {
+  state.running = false;
+  if (state.animFrame) cancelAnimationFrame(state.animFrame);
+  if (state.evalTimer) clearTimeout(state.evalTimer);
+  if (state.postFeedFaultTimer) clearTimeout(state.postFeedFaultTimer);
+  if (state.estopTimer) clearInterval(state.estopTimer);
+  emergencyStopUI();
+}
+function emergencyStopUI() {
+  btnStart.disabled = false;
+  document.getElementById('status-text').textContent = '停止';
+  document.getElementById('status-dot').className = 'status-dot stopped';
+  drumOverlay.classList.remove('visible');
+  drumOverlay.style.boxShadow = '';
+  closeDrumModal();
+  document.getElementById('feed-hotspot').style.display = 'none';
+  document.getElementById('feed-overlay').classList.remove('visible');
+  document.getElementById('fault-overlay').classList.remove('visible');
+  btnStop.classList.remove('ts-btn-estop-alert');
+  document.getElementById('estop-timer-display').style.display = 'none';
+  screenOverlay.className = 'screen-overlay';
+  state.currentSpeed = 0;
+  state.currentTemp = 25;
+  updateDisplay();
+  if (state.phase === 'heating' && !state.feedDone) {
+    setTimeout(() => showCleanupPhase(), 1500);
+  }
+}
+
+// ===== 仿真主循环 =====
+function simulate(timestamp) {
+  if (!state.running) return;
+  let dt = (timestamp - state.lastTime) / 1000;
+  if (dt > 0.1) dt = 0.1;
+  state.lastTime = timestamp;
+  state.simTime += dt;
+  state.runningDuration += dt;
+
+  if (state.currentSpeed < state.targetSpeed) {
+    state.currentSpeed = Math.min(state.targetSpeed, state.currentSpeed + 2 * dt);
+  }
+  if (state.currentTemp < state.targetTemp) {
+    state.currentTemp = Math.min(state.targetTemp, state.currentTemp + 5.0 * dt);
+  } else {
+    state.currentTemp = state.targetTemp + Math.sin(state.simTime * 0.5) * 2;
+  }
+  if (state.currentTemp > state.maxTempReached) state.maxTempReached = state.currentTemp;
+
+  if (Math.floor(state.simTime) > state.timeHistory.length) {
+    state.timeHistory.push(Math.floor(state.simTime) + 's');
+    state.tempHistory.push(Math.round(state.currentTemp * 10) / 10);
+  }
+
+  const degPerSec = state.currentSpeed * 6;
+  state.drumAngle += degPerSec * dt;
+  drumImg.style.transform = 'rotate(' + state.drumAngle + 'deg)';
+
+  if (state.faultTriggered) {
+    if (state.faultType === 'coil_overheat') state.currentTemp += 10 * dt;
+    else if (state.faultType === 'drum_jam') state.currentSpeed = Math.max(0, state.currentSpeed - 5 * dt);
+  }
+
+  updateDisplay();
+  updateHeatGlow();
+  chart.setOption({ series: [{ data: state.tempHistory }] });
+  updateScreenOverlay();
+  spawnSmoke();
+  checkFeedTiming();
+  checkLowSpeedPenalty();
+  checkOvertempPenalty();
+
+  state.animFrame = requestAnimationFrame(simulate);
+}
+
+function updateDisplay() {
+  document.getElementById('disp-temp').textContent = Math.round(state.currentTemp) + '℃';
+  document.getElementById('disp-speed').textContent = Math.round(state.currentSpeed) + ' r/min';
+}
+
+function updateHeatGlow() {
+  if (state.currentTemp >= 150) {
+    const i = Math.min((state.currentTemp - 150) / 150, 1);
+    drumOverlay.style.boxShadow =
+      `0 0 ${10 + i * 30}px rgba(255, ${Math.round(80 - i * 60)}, ${Math.round(50 - i * 40)}, ${i * 0.5}),` +
+      `inset 0 0 ${i * 20}px rgba(255, ${Math.round(100 - i * 70)}, 0, ${i * 0.3})`;
+  } else {
+    drumOverlay.style.boxShadow = '';
+  }
+}
+
+function updateScreenOverlay() {
+  screenOverlay.className = 'screen-overlay' + (state.currentTemp >= 180 && state.currentTemp <= 220 ? ' danger-zone' : '');
+}
+
+let lastSmokeTime = 0;
+function spawnSmoke() {
+  if (state.currentTemp < 180 || state.currentTemp > 220) return;
+  if (Date.now() - lastSmokeTime < 400) return;
+  lastSmokeTime = Date.now();
+  const p = document.createElement('div');
+  p.className = 'smoke-particle';
+  p.style.left = (30 + Math.random() * 40) + '%';
+  p.style.top = (40 + Math.random() * 20) + '%';
+  const s = (30 + Math.random() * 30) + 'px';
+  p.style.width = s;
+  p.style.height = s;
+  smokeContainer.appendChild(p);
+  setTimeout(() => p.remove(), 2000);
+}
+
+let lowSpeedLogged = false;
+function checkLowSpeedPenalty() {
+  if (state.currentTemp >= 150 && state.targetSpeed < 20 && !lowSpeedLogged) {
+    lowSpeedLogged = true;
+    addDeduction('转速过低（<' + state.targetSpeed + ' r/min）→ 受热不均/局部焦化', -5);
+  }
+}
+let overtempLogged = false;
+function checkOvertempPenalty() {
+  if (state.targetTemp > 250 && !overtempLogged) {
+    overtempLogged = true;
+    addDeduction('目标温度过高（' + state.targetTemp + '℃）→ 超温保护/整锅焦化', -10);
+  }
+}
+
+// ===== 投药时机 =====
+function checkFeedTiming() {
+  if (!state.feedPrompted && state.currentTemp > 220) {
+    state.feedPrompted = true;
+    state.feedDelay = Math.round((state.simTime - (180 - 25) / 5) * 10) / 10;
+    emergencyStop();
+    addDeduction('错失投药时机（温度超过220℃）', -10);
+    showToast('错失投药时机！温度超过220℃', 'error');
+    setTimeout(() => showScoreModal('fail', '操作违规！', '温度超过 220℃ 仍未投药\n错失投药时机！扣 10 分！'), 500);
+    return;
+  }
+  if (!state.feedPrompted && state.currentTemp >= 180) {
+    state.feedPrompted = true;
+    state.feedPromptTime = Date.now();
+    document.getElementById('feed-overlay').classList.add('visible');
+    document.getElementById('feed-hotspot').style.display = 'block';
+    showToast('麸下烟起！请点击料斗投药！', 'warning');
+
+    state.evalTimer = setTimeout(() => {
+      if (!state.feedDone && state.running) {
+        state.feedDelay = 5;
+        emergencyStop();
+        addDeduction('错失投药时机（5秒内未投药）', -10);
+        showToast('错失投药时机（5秒内未投药）', 'error');
+        setTimeout(() => showScoreModal('fail', '操作违规！', '错失投药时机（5秒内未投药）\n扣 10 分！'), 500);
+      }
+    }, 5000);
+  }
+}
+
+// ===== 虚拟投药 =====
+function feedMedicine() {
+  if (state.phase !== 'heating') return;
+  state.feedDone = true;
+  state.feedTempAtMoment = state.currentTemp;
+  document.getElementById('feed-hotspot').style.display = 'none';
+  document.getElementById('feed-overlay').classList.remove('visible');
+  state.feedDelay = Math.round((Date.now() - state.feedPromptTime) / 1000 * 10) / 10;
+
+  const tempOk = state.targetTemp >= 180 && state.targetTemp <= 220;
+  const speedOk = state.targetSpeed >= 20 && state.targetSpeed <= 30;
+
+  if (!tempOk) {
+    emergencyStop();
+    addDeduction('目标温度不在标准范围 (180-220℃)', -10);
+    showToast('温度参数不达标！', 'error');
+    setTimeout(() => showScoreModal('fail', '操作违规！', '目标温度不在标准范围 (180-220℃)\n当前: ' + state.targetTemp + '℃\n扣 10 分！'), 500);
+    return;
+  }
+  if (!speedOk) {
+    emergencyStop();
+    addDeduction('转速不在标准范围 (20-30 r/min)', -10);
+    showToast('转速参数不达标！', 'error');
+    setTimeout(() => showScoreModal('fail', '操作违规！', '转速不在标准范围 (20-30 r/min)\n当前: ' + state.targetSpeed + ' r/min\n扣 10 分！'), 500);
+    return;
+  }
+
+  showToast('投药成功！等待炮制完成...', 'success');
+  if (Math.random() < 0.5) schedulePostFeedFault();
+  state.evalTimer = setTimeout(() => {
+    if (state.running) {
+      state.running = false;
+      if (state.animFrame) cancelAnimationFrame(state.animFrame);
+      enterCoolingPhase();
+      setTimeout(() => showToast('炮制成功！进入自然降温', 'success'), 500);
+    }
+  }, 10000);
+}
+
+// ===== 自然降温 =====
+function enterCoolingPhase() {
+  state.phase = 'cooling';
+  state.coolingPhase = true;
+  state.coolingStartTemp = state.currentTemp;
+  state.coolingStartTime = state.simTime;
+  if (state.postFeedFaultTimer) clearTimeout(state.postFeedFaultTimer);
+  document.getElementById('status-text').textContent = '自然降温';
+  document.getElementById('status-dot').className = 'status-dot cooling';
+  btnStart.disabled = true;
+
+  function coolDown(ts) {
+    if (!state.coolingPhase) return;
+    let dt = (ts - state.lastTime) / 1000;
+    if (dt > 0.1) dt = 0.1;
+    state.lastTime = ts;
+    state.simTime += dt;
+    state.currentTemp = 25 + (state.coolingStartTemp - 25) * Math.exp(-0.05 * (state.simTime - state.coolingStartTime));
+    state.currentSpeed = Math.max(0, state.targetSpeed * Math.exp(-0.03 * (state.simTime - state.coolingStartTime)));
+    if (Math.floor(state.simTime) > state.timeHistory.length) {
+      state.timeHistory.push(Math.floor(state.simTime) + 's');
+      state.tempHistory.push(Math.round(state.currentTemp * 10) / 10);
+    }
+    drumImg.style.transform = 'rotate(' + (state.drumAngle += state.currentSpeed * 6 * dt) + 'deg)';
+    updateDisplay();
+    chart.setOption({ series: [{ data: state.tempHistory }] });
+    updateHeatGlow();
+    if (state.currentTemp > 40) {
+      state.animFrame = requestAnimationFrame(coolDown);
+    } else {
+      state.currentTemp = 25; state.currentSpeed = 0;
+      state.coolingPhase = false;
+      updateDisplay(); updateHeatGlow();
+      setTimeout(() => showCleanupPhase(), 1000);
+    }
+  }
+  state.lastTime = performance.now();
+  state.animFrame = requestAnimationFrame(coolDown);
+}
+
+// ===== 清场阶段：设备热点交互 =====
+const CLEAN_NAMES = ['切断电源', '滚筒散热', '清空物料', '清扫滚筒', '悬挂标牌'];
+const CLEAN_HOTSPOT_IDS = ['clean-hotspot-power', 'clean-hotspot-cool', 'clean-hotspot-empty', 'clean-hotspot-sweep', 'clean-hotspot-sign'];
+
+function showCleanupPhase() {
+  state.phase = 'cleaning';
+  state.cleanupStep = 1;
+  document.getElementById('cleanup-panel').classList.add('visible');
+  document.getElementById('bottom-hint').textContent = '请按照顺序在设备上点击热点完成清场';
+  updateCleanupUI();
+  showToast('操作完成！请执行清场流程', 'info');
+}
+
+function updateCleanupUI() {
+  // 更新面板状态
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('clean-step-' + i);
+    el.className = 'cleanup-step-indicator';
+    if (i < state.cleanupStep) el.classList.add('done');
+    if (i === state.cleanupStep) el.classList.add('active');
+    el.querySelector('.step-icon').textContent = i < state.cleanupStep ? '✓' : i;
+  }
+
+  // 显示/隐藏清场热点
+  CLEAN_HOTSPOT_IDS.forEach((id, idx) => {
+    const el = document.getElementById(id);
+    if (idx + 1 < state.cleanupStep) {
+      el.style.display = 'none';
+      el.classList.remove('glow');
+      el.classList.add('done');
+    } else if (idx + 1 === state.cleanupStep) {
+      el.style.display = 'block';
+      el.classList.add('glow');
+    } else {
+      el.style.display = 'none';
+      el.classList.remove('glow');
+    }
+  });
+}
+
+function doCleanup(step) {
+  if (step !== state.cleanupStep) {
+    showToast('请按顺序执行清场步骤！', 'error');
+    addDeduction('清场顺序错误', -5);
+    return;
+  }
+
+  showToast(CLEAN_NAMES[step - 1] + ' 完成 ✓', 'success');
+
+  const el = document.getElementById('clean-step-' + step);
+  el.className = 'cleanup-step-indicator done';
+  el.querySelector('.step-icon').textContent = '✓';
+
+  if (step < 5) {
+    state.cleanupStep = step + 1;
+    updateCleanupUI();
+  } else {
+    // 全部完成
+    setTimeout(() => {
+      document.getElementById('cleanup-panel').classList.remove('visible');
+      CLEAN_HOTSPOT_IDS.forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+      state.phase = 'finished';
+      document.getElementById('status-text').textContent = '已完成';
+      document.getElementById('status-dot').className = 'status-dot idle';
+      document.getElementById('report-hotspot').style.display = 'block';
+      document.getElementById('bottom-hint').textContent = '点击查看操作记录单';
+      showToast('清场完成！点击查看报告', 'success');
+    }, 600);
+  }
+}
+
+// ===== 评分与记录 =====
+function addDeduction(reason, points) {
+  state.score += points;
+  state.deductions.push({ reason, points });
+}
+
+function generateReport() {
+  const now = new Date();
+  const ts = now.toLocaleString('zh-CN');
+  state.recordData = {
+    examId: 'TCM-' + Date.now(),
+    task: '麸炒枳壳',
+    timestamp: ts,
+    parameters: { targetTemp: state.targetTemp, targetSpeed: state.targetSpeed },
+    results: {
+      maxTempReached: Math.round(state.maxTempReached * 10) / 10,
+      feedTempAtMoment: Math.round(state.feedTempAtMoment * 10) / 10,
+      feedDelay: state.feedDelay,
+      totalDuration: Math.round(state.simTime * 10) / 10,
+      gmpConfirmed: state.gmpConfirmed,
+      faultTriggered: state.faultTriggered,
+      estopReacted: state.estopReacted,
+    },
+    scoring: { baseScore: 100, deductions: state.deductions, finalScore: Math.max(0, state.score) },
+  };
+  let html = '<table class="report-table">';
+  html += '<tr><th colspan="2">基本信息</th></tr>';
+  html += '<tr><td>编号</td><td>' + state.recordData.examId + '</td></tr>';
+  html += '<tr><td>任务</td><td>' + state.recordData.task + '</td></tr>';
+  html += '<tr><td>时间</td><td>' + ts + '</td></tr>';
+  html += '<tr><th colspan="2">参数设定</th></tr>';
+  html += '<tr><td>目标温度</td><td>' + state.targetTemp + '℃</td></tr>';
+  html += '<tr><td>目标转速</td><td>' + state.targetSpeed + ' r/min</td></tr>';
+  html += '<tr><td>GMP确认</td><td>' + (state.gmpConfirmed ? '✅' : '❌') + '</td></tr>';
+  html += '<tr><th colspan="2">操作结果</th></tr>';
+  html += '<tr><td>最高温度</td><td>' + Math.round(state.maxTempReached) + '℃</td></tr>';
+  html += '<tr><td>投药温度</td><td>' + Math.round(state.feedTempAtMoment) + '℃</td></tr>';
+  html += '<tr><td>投药延误</td><td>' + state.feedDelay + '秒</td></tr>';
+  html += '<tr><td>总用时</td><td>' + Math.round(state.simTime) + '秒</td></tr>';
+  html += '<tr><td>故障响应</td><td>' + (state.faultTriggered ? (state.estopReacted ? '✅' : '❌') : '无') + '</td></tr>';
+  if (state.deductions.length > 0) {
+    html += '<tr><th colspan="2">扣分明细</th></tr>';
+    state.deductions.forEach(d => {
+      html += '<tr><td>' + d.reason + '</td><td class="score-penalty">' + d.points + '</td></tr>';
+    });
+  }
+  html += '<tr><th colspan="2">总分</th></tr>';
+  html += '<tr><td>最终得分</td><td class="score-total">' + Math.max(0, state.score) + ' / 100</td></tr>';
+  html += '</table>';
+  document.getElementById('report-content').innerHTML = html;
+}
+
+function showReport() {
+  generateReport();
+  document.getElementById('report-modal').classList.add('active');
+}
+function exportReport() {
+  const blob = new Blob([JSON.stringify(state.recordData, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '炒药机参数记录_' + state.recordData.examId + '.json';
+  a.click();
+}
+
+// ===== 弹窗 =====
+function openDrumModal() { document.getElementById('drum-modal').classList.add('active'); }
+function closeDrumModal() { document.getElementById('drum-modal').classList.remove('active'); }
+function showScoreModal(type, title, desc) {
+  const m = document.getElementById('score-modal');
+  m.className = 'score-modal active ' + type;
+  document.getElementById('score-icon').textContent = type === 'pass' ? '✅' : '❌';
+  document.getElementById('score-title').textContent = title;
+  document.getElementById('score-desc').textContent = desc;
+}
+function closeScoreModal() { document.getElementById('score-modal').classList.remove('active'); }
+</script>
+</body>
+</html>
