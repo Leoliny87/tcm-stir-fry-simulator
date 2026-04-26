@@ -732,16 +732,20 @@ input[type="range"]::-webkit-slider-thumb {
 <div class="gmp-modal" id="gmp-modal">
   <div class="modal-box">
     <div class="modal-title">车间环境与设备巡检</div>
-    <div class="gmp-check-item">
-      <input type="checkbox" id="gmp-check-1" onchange="checkGmpModalReady()">
-      <label for="gmp-check-1">确认设备已挂【已清洁】标牌</label>
+    <p style="font-size:11px; color:#aaa; margin-bottom:12px; line-height:1.5;">
+      请在设备图上点击需要检查的 <span style="color:#2ed573;">正确位置</span>，共 3 项。<br>
+      <span style="color:#ff4757;">误点无关部位将扣分。</span>
+    </p>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <span style="font-size:10px; color:#00d4ff;">已发现 <span id="gmp-found-count">0</span> / 3 项</span>
+      <span style="font-size:10px; color:#888;">剩余时间 <span id="gmp-time-left">60</span>s</span>
     </div>
-    <div class="gmp-check-item">
-      <input type="checkbox" id="gmp-check-2" onchange="checkGmpModalReady()">
-      <label for="gmp-check-2">确认通风排烟系统已开启</label>
+    <div id="gmp-checklist" style="margin-bottom:12px;">
+      <div class="gmp-check-item" style="padding:4px 0;"><span style="font-size:10px; color:#888;" id="gmp-task-1">○ 检查【已清洁】标牌</span></div>
+      <div class="gmp-check-item" style="padding:4px 0;"><span style="font-size:10px; color:#888;" id="gmp-task-2">○ 检查通风排烟系统</span></div>
+      <div class="gmp-check-item" style="padding:4px 0;"><span style="font-size:10px; color:#888;" id="gmp-task-3">○ 检查冷却水阀门</span></div>
     </div>
-    <button class="modal-btn gmp-btn-confirm" id="gmp-btn-confirm" disabled onclick="confirmGmpModal()">确认并完成GMP检查</button>
-    <button class="modal-btn gmp-btn-skip" onclick="skipGmpModal()">跳过（扣5分）</button>
+    <button class="modal-btn gmp-btn-skip" onclick="skipGmpModal()" style="width:100%; margin-top:0;">跳过（扣5分）</button>
   </div>
 </div>
 
@@ -757,15 +761,30 @@ input[type="range"]::-webkit-slider-thumb {
   <!-- 白烟 -->
   <div class="smoke-container" id="smoke-container"></div>
 
-  <!-- ===== 热点：GMP检查点 ===== -->
-  <div class="hotspot" id="gmp-hotspot-1" onclick="clickGmpHotspot(1)" style="display:none;">
-    <span class="hotspot-label">① 设备清洁检查</span>
+  <!-- ===== GMP 巡检热点（3个正确项 + 3个干扰项） ===== -->
+  <!-- 正确项 1：已清洁标牌（右上控制面板附近） -->
+  <div class="hotspot glow" id="gmp-correct-1" onclick="clickGmpCorrect(1)" style="display:none;">
+    <span class="hotspot-label">【已清洁】标牌</span>
   </div>
-  <div class="hotspot" id="gmp-hotspot-2" onclick="clickGmpHotspot(2)" style="display:none;">
-    <span class="hotspot-label">② 安全检查</span>
+  <!-- 正确项 2：通风排烟管（顶部管道） -->
+  <div class="hotspot glow" id="gmp-correct-2" onclick="clickGmpCorrect(2)" style="display:none;">
+    <span class="hotspot-label">排烟管道</span>
   </div>
-  <div class="hotspot" id="gmp-hotspot-3" onclick="clickGmpHotspot(3)" style="display:none;">
-    <span class="hotspot-label">③ 冷却系统检查</span>
+  <!-- 正确项 3：冷却水阀门（底部管道阀门） -->
+  <div class="hotspot glow" id="gmp-correct-3" onclick="clickGmpCorrect(3)" style="display:none;">
+    <span class="hotspot-label">冷却水阀</span>
+  </div>
+  <!-- 干扰项 1：进料斗（不是GMP检查项） -->
+  <div class="hotspot glow" id="gmp-decoy-1" onclick="clickGmpDecoy(1)" style="display:none;">
+    <span class="hotspot-label">进料斗</span>
+  </div>
+  <!-- 干扰项 2：出料口 -->
+  <div class="hotspot glow" id="gmp-decoy-2" onclick="clickGmpDecoy(2)" style="display:none;">
+    <span class="hotspot-label">出料口</span>
+  </div>
+  <!-- 干扰项 3：电机外壳 -->
+  <div class="hotspot glow" id="gmp-decoy-3" onclick="clickGmpDecoy(3)" style="display:none;">
+    <span class="hotspot-label">电机外壳</span>
   </div>
 
   <!-- ===== 热点：故障报警 ===== -->
@@ -908,6 +927,9 @@ input[type="range"]::-webkit-slider-thumb {
   </div>
 </div>
 
+<script src="core/eventBus.js"></script>
+<script src="core/scoring.js"></script>
+<script src="core/engine.js"></script>
 <script>
 // ============================================================
 // 状态机定义：8 个明确阶段，每个阶段有进入/退出行为
@@ -962,8 +984,8 @@ let state = {
   feedPrompted: false, feedPromptTime: 0, feedDone: false, feedDelay: 0,
   runningDuration: 0, evalTimer: null, qteTimer: null, qteInterval: null,
   baseScore: 100, deductions: [],
-  gmpChecks: { 1: false, 2: false, 3: false }, gmpConfirmed: false,
-  gmpSkipped: false,
+  gmpConfirmed: false,
+  gmpSkipped: false, gmpDecoyClicks: 0,
   faultTriggered: false, faultType: null, postFeedFaultTimer: null,
   estopTimer: null, estopReacted: false,
   cleanupStep: 0,
@@ -988,12 +1010,237 @@ const screenOverlay = document.getElementById('screen-overlay');
 const smokeContainer = document.getElementById('smoke-container');
 
 // ============================================================
+// EventBus 绑定：Engine → UI
+// ============================================================
+EventBus.on('STATE_CHANGE', (data) => {
+  const statusText = document.getElementById('status-text');
+  const statusDot = document.getElementById('status-dot');
+  switch (data.to) {
+    case 'PARAM':
+      statusText.textContent = '待机';
+      statusDot.className = 'status-dot idle';
+      break;
+    case 'HEATING':
+      statusText.textContent = '加热中';
+      statusDot.className = 'status-dot running';
+      drumOverlay.classList.add('visible');
+      btnStart.disabled = true;
+      // 初始化 UI 状态
+      state.phase = PHASE.HEATING;
+      state.running = true;
+      state.simTime = 0;
+      state.drumAngle = 0;
+      state.feedPrompted = false;
+      state.feedDone = false;
+      state.tempHistory = [];
+      state.timeHistory = [];
+      state.maxTempReached = 25;
+      lowSpeedLogged = false;
+      overtempLogged = false;
+      state.lastTime = performance.now();
+      break;
+    case 'COOKING':
+      statusText.textContent = '炮制中';
+      statusDot.className = 'status-dot cooking';
+      break;
+    case 'COOLING':
+      statusText.textContent = '自然降温';
+      statusDot.className = 'status-dot cooling';
+      btnStart.disabled = true;
+      state.coolingPhase = true;
+      state.coolingStartTemp = state.maxTempReached;
+      state.coolingStartTime = state.simTime;
+      state.lastTime = performance.now();
+      // Engine.startCooling() 会通过 TEMP_UPDATE 驱动 UI
+      break;
+    case 'END':
+      statusText.textContent = '已完成';
+      statusDot.className = 'status-dot idle';
+      drumOverlay.classList.remove('visible');
+      drumOverlay.style.boxShadow = '';
+      closeDrumModal();
+      state.running = false;
+      if (state.animFrame) cancelAnimationFrame(state.animFrame);
+      setTimeout(() => showCleanupPhase(), 1000);
+      break;
+    case 'EMERGENCY':
+      statusText.textContent = '故障！';
+      statusDot.className = 'status-dot stopped';
+      btnStop.classList.add('ts-btn-estop-alert');
+      document.getElementById('estop-timer-display').style.display = 'block';
+      break;
+  }
+});
+
+EventBus.on('UI_UNLOCK', () => {
+  // GMP 完成后解锁
+  showToast('GMP确认完成，请选择药材并设置参数', 'success');
+});
+
+EventBus.on('PARAMS_SET', (data) => {
+  // 参数已由 Engine 内部设置，UI 无需额外处理
+});
+
+EventBus.on('TEMP_UPDATE', (data) => {
+  document.getElementById('disp-temp').textContent = data.temp + '℃';
+  document.getElementById('disp-speed').textContent = data.speed + ' r/min';
+  // 同步到本地 state（用于 ECharts、烟雾、热发光等视觉层）
+  state.currentTemp = data.temp;
+  state.currentSpeed = data.speed;
+  state.simTime = data.time;
+  state.maxTempReached = Math.max(state.maxTempReached, data.temp);
+
+  // ECharts 更新
+  if (Math.floor(data.time) > state.timeHistory.length) {
+    state.timeHistory.push(Math.floor(data.time) + 's');
+    state.tempHistory.push(data.temp);
+  }
+  chart.setOption({ series: [{ data: state.tempHistory }] });
+
+  // 视觉层
+  updateHeatGlow();
+  updateScreenOverlay();
+  spawnSmoke();
+  checkLowSpeedPenalty();
+  checkOvertempPenalty();
+
+  // 滚筒旋转
+  const degPerSec = state.currentSpeed * 6;
+  state.drumAngle += degPerSec * 0.1;
+  drumImg.style.transform = 'rotate(' + state.drumAngle + 'deg)';
+});
+
+EventBus.on('QTE_START', (data) => {
+  state.feedPrompted = true;
+  state.feedPromptTime = Date.now();
+  document.getElementById('feed-overlay').classList.add('visible');
+  document.getElementById('feed-hotspot').style.display = 'block';
+  showToast('麸下烟起！请点击料斗投药！', 'warning');
+  startQteCountdown(5);
+});
+
+EventBus.on('QTE_COUNTDOWN', (data) => {
+  const qteEl = document.getElementById('qte-countdown');
+  const timerEl = document.getElementById('qte-timer');
+  const barFill = document.getElementById('qte-bar-fill');
+  qteEl.classList.add('visible');
+  timerEl.textContent = data.seconds.toFixed(1);
+  barFill.style.width = (data.remaining * 100) + '%';
+});
+
+EventBus.on('QTE_TIMEOUT', () => {
+  state.scoreState.feedTiming = 'timeout';
+  hideQteCountdown();
+  showToast('错失投药时机（5秒内未投药），扣10分', 'error');
+});
+
+EventBus.on('FEED_EARLY', (data) => {
+  state.scoreState.earlyFeedAttempt = true;
+  showToast('火候未到！当前温度 ' + Math.round(data.temp) + '℃，提前投药扣15分！', 'error');
+});
+
+EventBus.on('FEED_LATE', (data) => {
+  showToast('火候已过！当前温度 ' + Math.round(data.temp) + '℃，延迟投药扣15分！', 'error');
+});
+
+EventBus.on('FEED_PERFECT', (data) => {
+  state.feedDone = true;
+  state.feedTempAtMoment = data.temp;
+  state.feedDelay = data.delay / 1000;
+  state.scoreState.feedTiming = 'on_time';
+  document.getElementById('feed-hotspot').style.display = 'none';
+  document.getElementById('feed-overlay').classList.remove('visible');
+  hideQteCountdown();
+  showToast('投药成功！时机完美！', 'success');
+});
+
+EventBus.on('FEED_NORMAL', (data) => {
+  state.feedDone = true;
+  state.feedTempAtMoment = data.temp;
+  state.feedDelay = data.delay / 1000;
+  state.scoreState.feedTiming = 'on_time';
+  document.getElementById('feed-hotspot').style.display = 'none';
+  document.getElementById('feed-overlay').classList.remove('visible');
+  hideQteCountdown();
+  showToast('投药成功！等待炮制完成...', 'success');
+});
+
+EventBus.on('FEED_SUCCESS', (data) => {
+  state.feedDone = true;
+  state.feedTempAtMoment = data.temp;
+  state.feedDelay = data.delay / 1000;
+  state.scoreState.feedTiming = 'on_time';
+  document.getElementById('feed-hotspot').style.display = 'none';
+  document.getElementById('feed-overlay').classList.remove('visible');
+  hideQteCountdown();
+});
+
+EventBus.on('FEED_MISSED', (data) => {
+  state.scoreState.feedTiming = 'missed_overtemp';
+  showToast('错失投药时机！温度超过220℃', 'error');
+});
+
+EventBus.on('FAULT_TRIGGER', (data) => {
+  state.faultTriggered = true;
+  state.faultType = data.type;
+  state.scoreState.emergencyTriggered = true;
+  document.getElementById('fault-text').textContent = '⚠ ' + data.text;
+  document.getElementById('fault-overlay').classList.add('visible');
+  showToast('设备故障！3秒内拍急停！', 'error');
+});
+
+EventBus.on('ESTOP_COUNTDOWN', (data) => {
+  document.getElementById('estop-countdown').textContent = data.countdown;
+});
+
+EventBus.on('ESTOP_SUCCESS', () => {
+  document.getElementById('fault-overlay').classList.remove('visible');
+  document.getElementById('estop-timer-display').style.display = 'none';
+  btnStop.classList.remove('ts-btn-estop-alert');
+  showToast('故障已响应，设备已停止', 'success');
+  setTimeout(() => showCleanupPhase(), 1500);
+});
+
+EventBus.on('MANUAL_STOP', () => {
+  showToast('设备已手动停止', 'warning');
+  emergencyStopUI();
+});
+
+EventBus.on('GAME_OVER', () => {
+  const result = Engine.scoring.result();
+  setTimeout(() => showScoreModal('fail', '安全红线！一票否决！', '故障未在3秒内拍急停！\n直接0分！'), 500);
+});
+
+EventBus.on('SCORING_UPDATE', (data) => {
+  // 同步计分状态
+  state.baseScore = data.score;
+  state.deductions = data.logs.map(l => ({ reason: l.reason, points: l.points }));
+  state.scoreState = Object.assign(state.scoreState, { oneStrikeOut: data.oneStrikeOut });
+});
+
+EventBus.on('COOLING_COMPLETE', () => {
+  showToast('降温完成！请执行清场流程', 'info');
+});
+
+EventBus.on('DRUM_START', () => {
+  drumOverlay.classList.add('visible');
+  btnStart.disabled = true;
+});
+
+EventBus.on('PARAM_ERROR', (data) => {
+  showToast(data.reason, 'error');
+});
+
+// ============================================================
 // 百分比坐标系统（基于2752x1536原图）
 // ============================================================
 const P = {
-  gmp1: { x: 28, y: 20, w: 8, h: 10 },
-  gmp2: { x: 50, y: 8, w: 6, h: 8 },
-  gmp3: { x: 30, y: 55, w: 8, h: 10 },
+  gmpCorrect1: { x: 82, y: 12, w: 6, h: 8 },   // 正确项1：【已清洁】标牌（右上控制面板）
+  gmpCorrect2: { x: 45, y: 3, w: 10, h: 6 },    // 正确项2：通风排烟管（顶部管道）
+  gmpCorrect3: { x: 12, y: 55, w: 8, h: 8 },    // 正确项3：冷却水阀门（左下管道）
+  gmpDecoy1:   { x: 25, y: 5, w: 10, h: 10 },   // 干扰项1：进料斗
+  gmpDecoy2:   { x: 55, y: 45, w: 8, h: 10 },   // 干扰项2：出料口
+  gmpDecoy3:   { x: 18, y: 38, w: 8, h: 8 },    // 干扰项3：电机外壳
   ts: { x: 73, y: 19, w: 18, h: 42 },
   drum: { x: 36, y: 32, w: 14, h: 14 },
   feed: { x: 25, y: 5, w: 12, h: 12 },
@@ -1042,13 +1289,34 @@ function positionAll() {
   ts.style.width = t.width + 'px';
   ts.style.height = t.height + 'px';
 
-  [1,2,3].forEach(i => {
-    const p = calcPos(P['gmp' + i]);
-    const el = document.getElementById('gmp-hotspot-' + i);
-    el.style.left = (p.left + p.width * 0.1) + 'px';
-    el.style.top = (p.top + p.height * 0.1) + 'px';
-    el.style.width = (p.width * 0.8) + 'px';
-    el.style.height = (p.height * 0.8) + 'px';
+  // GMP 正确项热点定位
+  const gmpCorrectMap = {
+    'gmp-correct-1': P.gmpCorrect1,
+    'gmp-correct-2': P.gmpCorrect2,
+    'gmp-correct-3': P.gmpCorrect3,
+  };
+  Object.entries(gmpCorrectMap).forEach(([id, p]) => {
+    const c = calcPos(p);
+    const el = document.getElementById(id);
+    el.style.left = (c.left + c.width * 0.1) + 'px';
+    el.style.top = (c.top + c.height * 0.1) + 'px';
+    el.style.width = (c.width * 0.8) + 'px';
+    el.style.height = (c.height * 0.8) + 'px';
+  });
+
+  // GMP 干扰项热点定位
+  const gmpDecoyMap = {
+    'gmp-decoy-1': P.gmpDecoy1,
+    'gmp-decoy-2': P.gmpDecoy2,
+    'gmp-decoy-3': P.gmpDecoy3,
+  };
+  Object.entries(gmpDecoyMap).forEach(([id, p]) => {
+    const c = calcPos(p);
+    const el = document.getElementById(id);
+    el.style.left = (c.left + c.width * 0.1) + 'px';
+    el.style.top = (c.top + c.height * 0.1) + 'px';
+    el.style.width = (c.width * 0.8) + 'px';
+    el.style.height = (c.height * 0.8) + 'px';
   });
 
   const f = calcPos(P.feed);
@@ -1133,76 +1401,123 @@ function showToast(msg, type) {
 }
 
 // ============================================================
-// 阶段1：GMP 合规模态框
+// 阶段1：GMP 合规巡检（设备图热点识别）
 // ============================================================
+
+let gmpTimer = null;
+let gmpTimeLeft = 60;
+let gmpFound = 0;       // 已找到的正确项数
+let gmpDecoyClicks = 0;  // 误点干扰项次数
+
 function initGmpModal() {
   document.getElementById('gmp-modal').classList.remove('hidden');
   showToast('请先完成车间环境与设备巡检', 'info');
 }
 
-function checkGmpModalReady() {
-  const c1 = document.getElementById('gmp-check-1').checked;
-  const c2 = document.getElementById('gmp-check-2').checked;
-  document.getElementById('gmp-btn-confirm').disabled = !(c1 && c2);
+function startGmpTimer() {
+  gmpTimeLeft = 60;
+  document.getElementById('gmp-time-left').textContent = gmpTimeLeft;
+  gmpTimer = setInterval(() => {
+    gmpTimeLeft--;
+    document.getElementById('gmp-time-left').textContent = Math.max(0, gmpTimeLeft);
+    if (gmpTimeLeft <= 0) {
+      clearInterval(gmpTimer);
+      // 超时未完成，扣分跳过
+      addDeduction('GMP巡检超时未完成', -10);
+      completeGmpInspection();
+    }
+  }, 1000);
 }
 
-function confirmGmpModal() {
+function updateGmpFound() {
+  gmpFound++;
+  document.getElementById('gmp-found-count').textContent = gmpFound;
+  const taskEl = document.getElementById('gmp-task-' + gmpFound);
+  if (taskEl) {
+    taskEl.textContent = taskEl.textContent.replace('○', '✅');
+    taskEl.style.color = '#2ed573';
+  }
+  if (gmpFound >= 3) {
+    clearInterval(gmpTimer);
+    completeGmpInspection();
+  }
+}
+
+function completeGmpInspection() {
+  Engine.completeGmp();
   state.gmpConfirmed = true;
   state.gmpCheckPassed = true;
-  state.scoreState.gmpCheckPassed = true;
+  state.gmpDecoyClicks = gmpDecoyClicks;
   document.getElementById('gmp-modal').classList.add('hidden');
   state.phase = PHASE.PARAM_SETTING;
-  showGmpPhase();
+  hideAllGmpHotspots();
+  document.getElementById('bottom-hint').textContent = '请选择药材并设置参数';
   showToast('GMP确认完成，请选择药材并设置参数', 'success');
 }
 
+function hideAllGmpHotspots() {
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('gmp-correct-' + i).style.display = 'none';
+    document.getElementById('gmp-decoy-' + i).style.display = 'none';
+  }
+}
+
 function skipGmpModal() {
+  Engine.skipGmp();
   state.gmpSkipped = true;
   state.gmpCheckPassed = false;
-  state.scoreState.gmpCheckPassed = false;
-  addDeduction('GMP安全确认未完成（跳过）', -5);
   document.getElementById('gmp-modal').classList.add('hidden');
   state.phase = PHASE.PARAM_SETTING;
   showGmpPhase();
   showToast('已跳过GMP确认，扣5分', 'warning');
 }
 
-// GMP 热点交互（与模态框并行）
+// 显示 GMP 巡检热点（正确项 + 干扰项）
 function showGmpPhase() {
-  document.getElementById('bottom-hint').textContent = '请点击设备上的绿色热点完成设备巡检（共3项）';
-  [1,2,3].forEach(i => {
-    document.getElementById('gmp-hotspot-' + i).style.display = 'block';
-  });
-  showToast('请检查设备清洁状态', 'info');
+  document.getElementById('bottom-hint').textContent = '请在设备图上找到3个需要检查的正确位置';
+  gmpFound = 0;
+  gmpDecoyClicks = 0;
+  document.getElementById('gmp-found-count').textContent = '0';
+  // 重置任务列表
+  for (let i = 1; i <= 3; i++) {
+    const taskEl = document.getElementById('gmp-task-' + i);
+    if (taskEl) {
+      taskEl.textContent = taskEl.textContent.replace('✅', '○');
+      taskEl.style.color = '#888';
+    }
+  }
+  // 显示所有热点
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('gmp-correct-' + i).style.display = 'block';
+    document.getElementById('gmp-decoy-' + i).style.display = 'block';
+  }
+  startGmpTimer();
+  showToast('请检查设备上的关键部位', 'info');
 }
 
-function clickGmpHotspot(num) {
-  if (!state.gmpConfirmed && !state.gmpSkipped) return; // 模态框未完成前不可点击
-  if (state.gmpChecks[num]) return;
+// 点击正确项
+function clickGmpCorrect(num) {
+  const el = document.getElementById('gmp-correct-' + num);
+  if (el.classList.contains('done')) return;
 
-  state.gmpChecks[num] = true;
-  const el = document.getElementById('gmp-hotspot-' + num);
   el.classList.remove('glow');
   el.classList.add('done');
+  el.style.display = 'none';
+  updateGmpFound();
+}
 
-  const msgs = {
-    1: '设备清洁检查完成 ✓',
-    2: '安全运行检查完成 ✓',
-    3: '冷却系统检查完成 ✓',
-  };
-  showToast(msgs[num], 'success');
+// 点击干扰项（扣分）
+function clickGmpDecoy(num) {
+  gmpDecoyClicks++;
+  const el = document.getElementById('gmp-decoy-' + num);
+  if (el.classList.contains('clicked')) return;
+  el.classList.add('clicked');
+  el.style.border = '2px solid #ff4757';
+  el.style.boxShadow = '0 0 20px rgba(255, 71, 87, 0.6)';
 
-  if (state.gmpChecks[1] && state.gmpChecks[2] && state.gmpChecks[3]) {
-    if (!state.gmpConfirmed) {
-      // 全部点击完成但之前跳过了模态框，不额外加分
-      return;
-    }
-    setTimeout(() => {
-      [1,2,3].forEach(i => {
-        document.getElementById('gmp-hotspot-' + i).style.display = 'none';
-      });
-    }, 800);
-  }
+  const decoyNames = { 1: '进料斗', 2: '出料口', 3: '电机外壳' };
+  addDeduction('误点' + decoyNames[num] + '（非GMP检查项）', -3);
+  showToast(decoyNames[num] + '不是GMP检查项！扣3分', 'error');
 }
 
 // ============================================================
@@ -1242,79 +1557,14 @@ function startHeating() {
     return;
   }
 
-  state.running = true;
-  state.currentTemp = 25;
-  state.simTime = 0;
-  state.drumAngle = 0;
-  state.feedPrompted = false;
-  state.feedDone = false;
-  state.feedDelay = 0;
-  state.runningDuration = 0;
-  state.lastTime = performance.now();
-  state.tempHistory = [];
-  state.timeHistory = [];
-  state.phase = PHASE.HEATING;
-  state.maxTempReached = 25;
-  lowSpeedLogged = false;
-  overtempLogged = false;
-
-  btnStart.disabled = true;
-  document.getElementById('status-text').textContent = '加热中';
-  document.getElementById('status-dot').className = 'status-dot running';
-  drumOverlay.classList.add('visible');
-
-  // 故障模拟：投药后触发（30%概率，符合建议）
-  if (Math.random() < 0.3) schedulePostFeedFault();
+  // 委托给 Engine 启动加热
+  Engine.setParams(state.targetTemp, state.targetSpeed);
+  Engine.startHeating();
   showToast('设备启动，开始加热', 'info');
-  requestAnimationFrame(simulate);
 }
 
-// ============================================================
-// 仿真主循环
-// ============================================================
-function simulate(timestamp) {
-  if (!state.running) return;
-  let dt = (timestamp - state.lastTime) / 1000;
-  if (dt > 0.1) dt = 0.1;
-  state.lastTime = timestamp;
-  state.simTime += dt;
-  state.runningDuration += dt;
-
-  if (state.currentSpeed < state.targetSpeed) {
-    state.currentSpeed = Math.min(state.targetSpeed, state.currentSpeed + 2 * dt);
-  }
-  if (state.currentTemp < state.targetTemp) {
-    state.currentTemp = Math.min(state.targetTemp, state.currentTemp + 5.0 * dt);
-  } else {
-    state.currentTemp = state.targetTemp + Math.sin(state.simTime * 0.5) * 2;
-  }
-  if (state.currentTemp > state.maxTempReached) state.maxTempReached = state.currentTemp;
-
-  if (Math.floor(state.simTime) > state.timeHistory.length) {
-    state.timeHistory.push(Math.floor(state.simTime) + 's');
-    state.tempHistory.push(Math.round(state.currentTemp * 10) / 10);
-  }
-
-  const degPerSec = state.currentSpeed * 6;
-  state.drumAngle += degPerSec * dt;
-  drumImg.style.transform = 'rotate(' + state.drumAngle + 'deg)';
-
-  if (state.faultTriggered) {
-    if (state.faultType === 'coil_overheat') state.currentTemp += 10 * dt;
-    else if (state.faultType === 'drum_jam') state.currentSpeed = Math.max(0, state.currentSpeed - 5 * dt);
-  }
-
-  updateDisplay();
-  updateHeatGlow();
-  chart.setOption({ series: [{ data: state.tempHistory }] });
-  updateScreenOverlay();
-  spawnSmoke();
-  checkFeedTiming();
-  checkLowSpeedPenalty();
-  checkOvertempPenalty();
-
-  state.animFrame = requestAnimationFrame(simulate);
-}
+// ===== 仿真主循环已由 Engine._simLoop 接管 =====
+// 旧的 simulate 函数已移除，温度/转速/烟雾等由 Engine 通过 TEMP_UPDATE 事件驱动
 
 function updateDisplay() {
   document.getElementById('disp-temp').textContent = Math.round(state.currentTemp) + '℃';
@@ -1373,33 +1623,10 @@ function checkOvertempPenalty() {
   }
 }
 
-// ============================================================
-// 投药时机（QTE 机制）
-// ============================================================
-function checkFeedTiming() {
-  if (!state.feedPrompted && state.currentTemp > 220) {
-    state.feedPrompted = true;
-    state.feedDelay = Math.round((state.simTime - (180 - 25) / 5) * 10) / 10;
-    state.scoreState.feedTiming = 'missed_overtemp';
-    emergencyStop();
-    addDeduction('错失投药时机（温度超过220℃）', -10);
-    showToast('错失投药时机！温度超过220℃', 'error');
-    setTimeout(() => showScoreModal('fail', '操作违规！', '温度超过 220℃ 仍未投药\n错失投药时机！扣 10 分！'), 500);
-    return;
-  }
-  if (!state.feedPrompted && state.currentTemp >= 180) {
-    state.feedPrompted = true;
-    state.feedPromptTime = Date.now();
-    document.getElementById('feed-overlay').classList.add('visible');
-    document.getElementById('feed-hotspot').style.display = 'block';
-    showToast('麸下烟起！请点击料斗投药！', 'warning');
+// ===== 投药时机（QTE 机制）已由 Engine._checkQteTrigger 接管 =====
+// Engine 通过 QTE_START / QTE_COUNTDOWN / QTE_TIMEOUT 事件驱动 UI
 
-    // 开启 QTE 5秒倒计时
-    startQteCountdown(5);
-  }
-}
-
-// QTE 投药倒计时（5秒窗口可视化）
+// QTE 投药倒计时（5秒窗口可视化）— 仅做视觉展示，超时逻辑由 Engine 通过 QTE_TIMEOUT 事件处理
 function startQteCountdown(seconds) {
   const qteEl = document.getElementById('qte-countdown');
   const timerEl = document.getElementById('qte-timer');
@@ -1410,24 +1637,15 @@ function startQteCountdown(seconds) {
   timerEl.textContent = remaining.toFixed(1);
   barFill.style.width = '100%';
 
+  if (state.qteInterval) clearInterval(state.qteInterval);
   state.qteInterval = setInterval(() => {
     remaining -= 0.1;
     if (remaining <= 0) {
       remaining = 0;
-      clearInterval(state.qteInterval);
+      // 不清理、不停止 — Engine 会通过 QTE_TIMEOUT 事件处理
     }
     timerEl.textContent = remaining.toFixed(1);
     barFill.style.width = (remaining / seconds * 100) + '%';
-
-    if (remaining <= 0 && !state.feedDone && state.running) {
-      state.feedDelay = 5;
-      state.scoreState.feedTiming = 'timeout';
-      hideQteCountdown();
-      emergencyStop();
-      addDeduction('错失投药时机（5秒内未投药）', -10);
-      showToast('错失投药时机（5秒内未投药）', 'error');
-      setTimeout(() => showScoreModal('fail', '操作违规！', '错失投药时机（5秒内未投药）\n扣 10 分！'), 500);
-    }
   }, 100);
 }
 
@@ -1436,138 +1654,27 @@ function hideQteCountdown() {
   if (state.qteInterval) clearInterval(state.qteInterval);
 }
 
-// 提前投药（温度 < 180℃）
-function attemptEarlyFeed() {
-  state.scoreState.earlyFeedAttempt = true;
-  addDeduction('火候未到提前投药（温度 < 180℃）', -15);
-  showToast('火候未到！当前温度 ' + Math.round(state.currentTemp) + '℃，提前投药扣15分！', 'error');
-}
+// ===== 提前投药惩罚已由 Engine.feed 处理 =====
+// Engine 通过 FEED_EARLY / FEED_LATE 事件通知 UI
 
 // ============================================================
 // 虚拟投药
 // ============================================================
 function feedMedicine() {
-  if (state.phase !== PHASE.HEATING) return;
-
-  // 提前投药惩罚
-  if (state.currentTemp < 180) {
-    attemptEarlyFeed();
-    return; // 不继续执行投药流程，让学生重新等到180℃
-  }
-
-  state.feedDone = true;
-  state.feedTempAtMoment = state.currentTemp;
-  state.scoreState.feedTiming = state.feedDelay <= 5 ? 'on_time' : 'late';
-  document.getElementById('feed-hotspot').style.display = 'none';
-  document.getElementById('feed-overlay').classList.remove('visible');
-  state.feedDelay = Math.round((Date.now() - state.feedPromptTime) / 1000 * 10) / 10;
-  hideQteCountdown();
-
-  // 参数验证（使用药材配方标准）
-  const recipe = HERB_RECIPES[state.selectedHerb];
-  const tempOk = recipe
-    ? (state.targetTemp >= recipe.tempMin && state.targetTemp <= recipe.tempMax)
-    : (state.targetTemp >= 180 && state.targetTemp <= 220);
-  const speedOk = recipe
-    ? (state.targetSpeed >= recipe.speedMin && state.targetSpeed <= recipe.speedMax)
-    : (state.targetSpeed >= 20 && state.targetSpeed <= 30);
-
-  if (!tempOk) {
-    emergencyStop();
-    addDeduction('目标温度不在标准范围', -10);
-    showToast('温度参数不达标！', 'error');
-    setTimeout(() => showScoreModal('fail', '操作违规！', '目标温度不在标准范围 (' + (recipe ? recipe.tempMin : 180) + '-' + (recipe ? recipe.tempMax : 220) + '℃)\n当前: ' + state.targetTemp + '℃\n扣 10 分！'), 500);
-    return;
-  }
-  if (!speedOk) {
-    emergencyStop();
-    addDeduction('转速不在标准范围', -10);
-    showToast('转速参数不达标！', 'error');
-    setTimeout(() => showScoreModal('fail', '操作违规！', '转速不在标准范围 (' + (recipe ? recipe.speedMin : 20) + '-' + (recipe ? recipe.speedMax : 30) + ' r/min)\n当前: ' + state.targetSpeed + ' r/min\n扣 10 分！'), 500);
-    return;
-  }
-
-  showToast('投药成功！等待炮制完成...', 'success');
-  // 投药后30%概率触发故障
-  if (Math.random() < 0.3) schedulePostFeedFault();
-
-  // 进入炮制阶段
-  state.phase = PHASE.COOKING;
-  document.getElementById('status-text').textContent = '炮制中';
-  document.getElementById('status-dot').className = 'status-dot cooking';
-
-  state.evalTimer = setTimeout(() => {
-    if (state.running) {
-      state.running = false;
-      if (state.animFrame) cancelAnimationFrame(state.animFrame);
-      enterCoolingPhase();
-      setTimeout(() => showToast('炮制完成！进入自然降温', 'success'), 500);
-    }
-  }, 10000);
+  Engine.feed();
 }
 
-// ============================================================
-// 故障模拟（投药后触发）
-// ============================================================
-function schedulePostFeedFault() {
-  state.postFeedFaultTimer = setTimeout(() => {
-    if (!state.running || state.faultTriggered) return;
-    triggerFault();
-  }, 3000 + Math.random() * 5000);
-}
+// ===== 故障模拟已由 Engine._scheduleFault / _triggerFault 接管 =====
 
 function triggerFault() {
-  state.faultTriggered = true;
-  state.scoreState.emergencyTriggered = true;
-  const faults = [
-    { type: 'coil_overheat', text: '线圈过热报警！' },
-    { type: 'drum_jam', text: '滚筒电机过载！' },
-  ];
-  const fault = faults[Math.floor(Math.random() * 2)];
-  state.faultType = fault.type;
-  document.getElementById('fault-text').textContent = '⚠ ' + fault.text;
-  document.getElementById('fault-overlay').classList.add('visible');
-  btnStop.classList.add('ts-btn-estop-alert');
-  document.getElementById('estop-timer-display').style.display = 'block';
-
-  let countdown = 3;
-  document.getElementById('estop-countdown').textContent = countdown;
-  state.estopReacted = false;
-  showToast('设备故障！3秒内拍急停！', 'error');
-
-  state.estopTimer = setInterval(() => {
-    countdown--;
-    document.getElementById('estop-countdown').textContent = Math.max(0, countdown);
-    if (countdown <= 0) {
-      clearInterval(state.estopTimer);
-      if (!state.estopReacted && state.running) {
-        state.running = false;
-        if (state.animFrame) cancelAnimationFrame(state.animFrame);
-        state.scoreState.emergencyReacted = false;
-        addDeduction('故障响应超时（未在3秒内拍急停）', -100);
-        emergencyStopUI();
-        setTimeout(() => showScoreModal('fail', '安全红线！一票否决！', '故障未在3秒内拍急停！\n直接0分！'), 500);
-      }
-    }
-  }, 1000);
+  Engine._triggerFault();
 }
 
 // ============================================================
 // 紧急停止
 // ============================================================
 function handleEStop() {
-  if (state.faultTriggered && !state.estopReacted) {
-    state.estopReacted = true;
-    state.scoreState.emergencyReacted = true;
-    clearInterval(state.estopTimer);
-    document.getElementById('estop-timer-display').style.display = 'none';
-    document.getElementById('fault-overlay').classList.remove('visible');
-    btnStop.classList.remove('ts-btn-estop-alert');
-    emergencyStop();
-    showToast('故障已响应，设备已停止', 'success');
-    return;
-  }
-  emergencyStop();
+  Engine.emergencyStop();
 }
 
 function emergencyStop() {
@@ -1601,47 +1708,8 @@ function emergencyStopUI() {
   }
 }
 
-// ============================================================
-// 阶段5：自然降温
-// ============================================================
-function enterCoolingPhase() {
-  state.phase = PHASE.COOLING;
-  state.coolingPhase = true;
-  state.coolingStartTemp = state.currentTemp;
-  state.coolingStartTime = state.simTime;
-  if (state.postFeedFaultTimer) clearTimeout(state.postFeedFaultTimer);
-  document.getElementById('status-text').textContent = '自然降温';
-  document.getElementById('status-dot').className = 'status-dot cooling';
-  btnStart.disabled = true;
-
-  function coolDown(ts) {
-    if (!state.coolingPhase) return;
-    let dt = (ts - state.lastTime) / 1000;
-    if (dt > 0.1) dt = 0.1;
-    state.lastTime = ts;
-    state.simTime += dt;
-    state.currentTemp = 25 + (state.coolingStartTemp - 25) * Math.exp(-0.05 * (state.simTime - state.coolingStartTime));
-    state.currentSpeed = Math.max(0, state.targetSpeed * Math.exp(-0.03 * (state.simTime - state.coolingStartTime)));
-    if (Math.floor(state.simTime) > state.timeHistory.length) {
-      state.timeHistory.push(Math.floor(state.simTime) + 's');
-      state.tempHistory.push(Math.round(state.currentTemp * 10) / 10);
-    }
-    drumImg.style.transform = 'rotate(' + (state.drumAngle += state.currentSpeed * 6 * dt) + 'deg)';
-    updateDisplay();
-    chart.setOption({ series: [{ data: state.tempHistory }] });
-    updateHeatGlow();
-    if (state.currentTemp > 40) {
-      state.animFrame = requestAnimationFrame(coolDown);
-    } else {
-      state.currentTemp = 25; state.currentSpeed = 0;
-      state.coolingPhase = false;
-      updateDisplay(); updateHeatGlow();
-      setTimeout(() => showCleanupPhase(), 1000);
-    }
-  }
-  state.lastTime = performance.now();
-  state.animFrame = requestAnimationFrame(coolDown);
-}
+// ===== 自然降温已由 Engine.startCooling 接管 =====
+// Engine 通过 TEMP_UPDATE 事件驱动 UI 更新（ECharts、滚筒旋转等）
 
 // ============================================================
 // 清场阶段
@@ -1650,6 +1718,7 @@ const CLEAN_NAMES = ['切断电源', '滚筒散热', '清空物料', '清扫滚�
 const CLEAN_HOTSPOT_IDS = ['clean-hotspot-power', 'clean-hotspot-cool', 'clean-hotspot-empty', 'clean-hotspot-sweep', 'clean-hotspot-sign'];
 
 function showCleanupPhase() {
+  if (state.phase === PHASE.CLEANING || state.phase === PHASE.FINISHED) return;
   state.phase = PHASE.CLEANING;
   state.cleanupStep = 1;
   document.getElementById('cleanup-panel').classList.add('visible');
