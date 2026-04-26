@@ -14,19 +14,64 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
-/* ===== 设备图全屏 ===== */
+/* ===== 分栏布局 ===== */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* 左侧：设备图 */
+.machine-pane {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #0a0a0f;
+  min-width: 0;
+}
+
 .machine-wrapper {
   position: relative;
   width: 100%;
+  height: 100%;
   overflow: hidden;
 }
+
 .machine-img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: contain;
+  object-position: center center;
+}
+
+/* 右侧：控制面板侧边栏 */
+.sidebar-pane {
+  width: 280px;
+  min-width: 280px;
+  background: linear-gradient(180deg, #0a0a14, #111118);
+  border-left: 1px solid rgba(0, 212, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 6px;
+  gap: 6px;
+}
+
+.sidebar-title {
+  text-align: center;
+  color: #00d4ff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.4);
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+  margin-bottom: 2px;
 }
 
 /* ===== 所有热点都叠加在设备图上 ===== */
@@ -127,7 +172,7 @@ body {
   100% { opacity: 0; transform: translateY(-80px) scale(2); }
 }
 
-/* ===== 红色警戒滤镜 ===== */
+/* ===== 红色滤镜 ===== */
 .screen-overlay {
   position: absolute;
   inset: 0;
@@ -139,63 +184,41 @@ body {
   background: radial-gradient(ellipse at center, rgba(255,0,0,0.1) 0%, transparent 70%);
 }
 
-/* ===== 触摸屏覆盖层 ===== */
-.touchscreen {
-  position: absolute;
-  z-index: 10;
-  background: rgba(5, 5, 20, 0.88);
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 6px;
-  padding: 6px;
-  backdrop-filter: blur(2px);
-  overflow: hidden;
-  transition: all 0.3s;
-}
-
-.ts-header {
-  text-align: center;
-  color: #00d4ff;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  margin-bottom: 3px;
-  text-shadow: 0 0 6px rgba(0, 212, 255, 0.4);
-}
-
-.ts-status {
+/* ===== 侧边栏状态显示 ===== */
+.sb-status {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 3px;
+  gap: 4px;
   margin-bottom: 4px;
 }
-.ts-status-item {
+.sb-status-item {
   text-align: center;
   background: rgba(0,0,0,0.5);
-  border-radius: 3px;
-  padding: 2px 1px;
+  border-radius: 4px;
+  padding: 4px 2px;
 }
-.ts-status-item .label {
-  font-size: 6px;
+.sb-status-item .label {
+  font-size: 7px;
   color: #888;
   margin-bottom: 0;
 }
-.ts-status-item .value {
+.sb-status-item .value {
   font-family: 'Courier New', monospace;
   color: #00d4ff;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   text-shadow: 0 0 6px rgba(0, 212, 255, 0.5);
 }
-.ts-status-item .status-text {
-  font-size: 7px;
+.sb-status-item .status-text {
+  font-size: 8px;
   font-weight: 700;
 }
 
 .status-dot {
-  width: 5px; height: 5px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   display: inline-block;
-  margin-right: 1px;
+  margin-right: 2px;
   vertical-align: middle;
 }
 .status-dot.idle { background: #ffa502; }
@@ -203,53 +226,52 @@ body {
 .status-dot.stopped { background: #ff4757; }
 .status-dot.cooking { background: #ffa502; animation: blink 0.6s infinite; }
 .status-dot.cooling { background: #00d4ff; animation: blink 1.5s infinite; }
-.status-dot.cleaning { background: #a855f7; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-.ts-task {
-  font-size: 6px;
+.sb-task {
+  font-size: 7px;
   color: #ffa502;
   background: rgba(255, 165, 2, 0.1);
   border: 1px solid rgba(255, 165, 2, 0.3);
-  border-radius: 3px;
-  padding: 2px 4px;
-  margin-bottom: 3px;
+  border-radius: 4px;
+  padding: 3px 6px;
+  margin-bottom: 4px;
   line-height: 1.3;
 }
 
 /* ===== 药材选择下拉框 ===== */
-.ts-herb-select {
+.sb-herb-select {
   width: 100%;
   background: rgba(0,0,0,0.5);
   color: #00d4ff;
   border: 1px solid rgba(0, 212, 255, 0.3);
-  border-radius: 3px;
-  font-size: 7px;
-  padding: 2px 4px;
-  margin-bottom: 3px;
+  border-radius: 4px;
+  font-size: 8px;
+  padding: 4px 6px;
+  margin-bottom: 4px;
   outline: none;
   appearance: none;
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='4'%3E%3Cpath d='M0 0l4 4 4-4z' fill='%2300d4ff'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 4px center;
+  background-position: right 6px center;
 }
 
-.ts-slider-group {
-  margin-bottom: 3px;
+.sb-slider-group {
+  margin-bottom: 6px;
 }
-.ts-slider-label {
+.sb-slider-label {
   display: flex;
   justify-content: space-between;
-  font-size: 6px;
+  font-size: 8px;
   color: #aaa;
-  margin-bottom: 1px;
+  margin-bottom: 2px;
 }
-.ts-slider-label .val {
+.sb-slider-label .val {
   color: #00d4ff;
   font-family: 'Courier New', monospace;
   font-weight: 700;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 input[type="range"] {
@@ -271,65 +293,55 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer;
 }
 
-.ts-btn {
+.sb-btn {
   border: none;
   border-radius: 4px;
   font-weight: 700;
-  font-size: 8px;
-  padding: 4px 0;
+  font-size: 10px;
+  padding: 6px 0;
   cursor: pointer;
   transition: all 0.2s;
   letter-spacing: 1px;
   width: 100%;
 }
-.ts-btn:active { transform: scale(0.95); }
-.ts-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.sb-btn:active { transform: scale(0.95); }
+.sb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.ts-btn-start {
+.sb-btn-start {
   background: linear-gradient(135deg, #2ed573, #1a9c4c);
   color: #fff;
   box-shadow: 0 2px 8px rgba(46, 213, 115, 0.3);
 }
-.ts-btn-stop {
+.sb-btn-stop {
   background: linear-gradient(135deg, #ff4757, #c0392b);
   color: #fff;
   box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3);
 }
-.ts-btn-estop-alert {
+.sb-btn-estop-alert {
   animation: estopFlash 0.4s ease-in-out infinite;
 }
 @keyframes estopFlash {
   0%, 100% { box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3); }
   50% { box-shadow: 0 2px 20px rgba(255, 71, 87, 0.9); }
 }
-.ts-btn-feed {
-  background: linear-gradient(135deg, #ffa502, #cc7a00);
-  color: #fff;
-  box-shadow: 0 2px 10px rgba(255, 165, 2, 0.5);
-  animation: feedPulse 0.8s ease-in-out infinite;
-}
-@keyframes feedPulse {
-  0%, 100% { box-shadow: 0 2px 10px rgba(255, 165, 2, 0.5); }
-  50% { box-shadow: 0 2px 18px rgba(255, 165, 2, 0.9); }
-}
 
 /* ===== QTE 倒计时 ===== */
 .qte-countdown {
   text-align: center;
-  font-size: 9px;
+  font-size: 10px;
   color: #ff4757;
   font-weight: 700;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
   display: none;
   text-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
 }
 .qte-countdown.visible { display: block; }
 .qte-countdown .qte-bar {
   width: 100%;
-  height: 3px;
+  height: 4px;
   background: #3a3a3e;
   border-radius: 2px;
-  margin-top: 2px;
+  margin-top: 3px;
   overflow: hidden;
 }
 .qte-countdown .qte-bar-fill {
@@ -341,8 +353,10 @@ input[type="range"]::-webkit-slider-thumb {
 
 #chart-container {
   background: rgba(0,0,0,0.5);
-  border-radius: 3px;
+  border-radius: 4px;
   border: 1px solid rgba(0, 212, 255, 0.15);
+  height: 60px;
+  margin-bottom: 4px;
 }
 
 /* ===== 清场步骤指示器 ===== */
@@ -478,26 +492,6 @@ input[type="range"]::-webkit-slider-thumb {
   background: rgba(255,255,255,0.1);
 }
 
-/* ===== 底部信息栏 ===== */
-.bottom-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(10, 10, 15, 0.95);
-  border-top: 1px solid rgba(0, 212, 255, 0.2);
-  padding: 6px 16px;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-.bottom-bar .info-text {
-  font-size: 9px;
-  color: #888;
-}
-
 /* ===== 报告弹窗 ===== */
 .report-modal {
   position: fixed; inset: 0;
@@ -583,73 +577,65 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer; letter-spacing: 1px;
 }
 
-/* ===== GMP 模态框 ===== */
-.gmp-modal {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 400;
+/* ===== GMP 巡检 HUD（不遮挡设备图） ===== */
+.gmp-hud {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 20;
+  background: rgba(5, 5, 20, 0.92);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  backdrop-filter: blur(4px);
+  display: none;
 }
-.gmp-modal.hidden { display: none; }
-.gmp-modal .modal-box {
-  max-width: 92vw;
-  width: 340px;
-  background: linear-gradient(135deg, #1a1a2e, #1e1e1e);
-  border: 2px solid rgba(0, 212, 255, 0.4);
-  border-radius: 16px;
-  padding: 24px 20px;
-}
-.gmp-modal .modal-title {
+.gmp-hud.visible { display: block; }
+.gmp-hud .hud-title {
   color: #00d4ff;
-  font-size: 15px;
+  font-size: 11px;
   font-weight: 700;
   text-align: center;
-  margin-bottom: 16px;
-  text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+  margin-bottom: 6px;
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.3);
 }
-.gmp-check-item {
+.gmp-hud .hud-info {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-.gmp-check-item input[type="checkbox"] {
-  width: 16px; height: 16px;
-  accent-color: #00d4ff;
-  cursor: pointer;
-}
-.gmp-check-item label {
-  font-size: 12px;
-  color: #ccc;
-  cursor: pointer;
-}
-.gmp-modal .modal-btn {
-  margin-top: 16px;
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  letter-spacing: 1px;
-}
-.gmp-btn-confirm {
-  background: linear-gradient(135deg, #2ed573, #1a9c4c);
-  color: #fff;
   margin-bottom: 6px;
 }
-.gmp-btn-confirm:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.gmp-hud .hud-info .found {
+  font-size: 9px;
+  color: #00d4ff;
 }
-.gmp-btn-skip {
+.gmp-hud .hud-info .timer {
+  font-size: 9px;
+  color: #888;
+}
+.gmp-hud .hud-task {
+  font-size: 8px;
+  color: #888;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  line-height: 1.4;
+}
+.gmp-hud .hud-task.done {
+  color: #2ed573;
+}
+.gmp-hud .hud-skip {
+  margin-top: 8px;
+  width: 100%;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.1);
   background: rgba(255,255,255,0.08);
   color: #888;
-  border: 1px solid rgba(255,255,255,0.1);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
 }
 
 /* ===== 故障报警 ===== */
@@ -718,188 +704,225 @@ input[type="range"]::-webkit-slider-thumb {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
 }
+
+/* ===== 侧边栏急停倒计时 ===== */
+.sb-estop-timer {
+  text-align: center;
+  font-size: 8px;
+  color: #ff4757;
+  margin-bottom: 3px;
+  display: none;
+}
+.sb-estop-timer.visible { display: block; }
+.sb-estop-timer .countdown-num {
+  font-size: 18px;
+  font-weight: 700;
+  animation: countdownPulse 0.5s ease-in-out infinite;
+}
+
+/* ===== 报告图标 ===== */
+.report-hotspot { display: none; }
+
+/* ===== 响应式：小屏幕侧边栏变窄 ===== */
+@media (max-width: 768px) {
+  .sidebar-pane {
+    width: 200px;
+    min-width: 200px;
+  }
+}
+@media (max-width: 600px) {
+  .app-layout {
+    flex-direction: column;
+  }
+  .sidebar-pane {
+    width: 100%;
+    min-width: 100%;
+    max-height: 40vh;
+    border-left: none;
+    border-top: 1px solid rgba(0, 212, 255, 0.15);
+  }
+}
 </style>
 </head>
 <body>
 
-<!-- 屏幕红色滤镜 -->
-<div class="screen-overlay" id="screen-overlay"></div>
+<!-- ===== 分栏布局 ===== -->
+<div class="app-layout">
+
+<!-- ===== 左侧：设备监视区 ===== -->
+<div class="machine-pane" id="machine-pane">
+
+  <!-- 屏幕红色滤镜 -->
+  <div class="screen-overlay" id="screen-overlay"></div>
+
+  <!-- 设备图 + 所有热点 -->
+  <div class="machine-wrapper" id="machine-wrapper">
+    <img src="bg_machine.png" alt="炒药机" class="machine-img" id="machine-img">
+
+    <!-- 滚筒观察窗 -->
+    <div class="drum-overlay" id="drum-overlay" onclick="openDrumModal()">
+      <img src="drum.png" alt="滚筒内部" id="drum-img">
+    </div>
+
+    <!-- 白烟 -->
+    <div class="smoke-container" id="smoke-container"></div>
+
+    <!-- ===== GMP 巡检 HUD（顶部半透明浮层） ===== -->
+    <div class="gmp-hud" id="gmp-hud">
+      <div class="hud-title">车间环境与设备巡检</div>
+      <div class="hud-info">
+        <span class="found">已发现 <span id="gmp-found-count">0</span> / 3 项</span>
+        <span class="timer">剩余 <span id="gmp-time-left">60</span>s</span>
+      </div>
+      <div class="hud-task" id="gmp-task-1">○ 检查【已清洁】标牌</div>
+      <div class="hud-task" id="gmp-task-2">○ 检查通风排烟系统</div>
+      <div class="hud-task" id="gmp-task-3">○ 检查冷却水阀门</div>
+      <div class="hud-info" style="margin-top:6px; justify-content:center;">
+        <span style="font-size:8px; color:#aaa;">点击设备图上绿色发光热点完成巡检</span>
+      </div>
+      <button class="hud-skip" onclick="skipGmpModal()">跳过（扣5分）</button>
+    </div>
+
+    <!-- ===== GMP 热点（3个正确项 + 3个干扰项） ===== -->
+    <div class="hotspot glow" id="gmp-correct-1" onclick="clickGmpCorrect(1)" style="display:none;">
+      <span class="hotspot-label">【已清洁】标牌</span>
+    </div>
+    <div class="hotspot glow" id="gmp-correct-2" onclick="clickGmpCorrect(2)" style="display:none;">
+      <span class="hotspot-label">排烟管道</span>
+    </div>
+    <div class="hotspot glow" id="gmp-correct-3" onclick="clickGmpCorrect(3)" style="display:none;">
+      <span class="hotspot-label">冷却水阀</span>
+    </div>
+    <div class="hotspot glow" id="gmp-decoy-1" onclick="clickGmpDecoy(1)" style="display:none;">
+      <span class="hotspot-label">进料斗</span>
+    </div>
+    <div class="hotspot glow" id="gmp-decoy-2" onclick="clickGmpDecoy(2)" style="display:none;">
+      <span class="hotspot-label">出料口</span>
+    </div>
+    <div class="hotspot glow" id="gmp-decoy-3" onclick="clickGmpDecoy(3)" style="display:none;">
+      <span class="hotspot-label">电机外壳</span>
+    </div>
+
+    <!-- ===== 故障报警 ===== -->
+    <div class="fault-overlay" id="fault-overlay">
+      <div class="fault-text" id="fault-text">⚠ 设备故障！</div>
+      <div class="estop-countdown" id="estop-countdown">3</div>
+    </div>
+
+    <!-- ===== 投药提示 ===== -->
+    <div class="feed-overlay" id="feed-overlay">
+      <div class="feed-text">⚠ 麸下烟起！请投药！</div>
+    </div>
+
+    <!-- ===== 投药按钮 ===== -->
+    <div class="hotspot warning" id="feed-hotspot" onclick="feedMedicine()" style="display:none;">
+      <span class="hotspot-label">投药</span>
+    </div>
+
+    <!-- ===== 清场步骤面板 ===== -->
+    <div class="cleanup-steps" id="cleanup-panel">
+      <div class="cleanup-step-indicator" id="clean-step-1"><div class="step-icon">1</div>切断电源</div>
+      <div class="cleanup-step-indicator" id="clean-step-2"><div class="step-icon">2</div>滚筒散热</div>
+      <div class="cleanup-step-indicator" id="clean-step-3"><div class="step-icon">3</div>清空物料</div>
+      <div class="cleanup-step-indicator" id="clean-step-4"><div class="step-icon">4</div>清扫滚筒</div>
+      <div class="cleanup-step-indicator" id="clean-step-5"><div class="step-icon">5</div>悬挂标牌</div>
+    </div>
+
+    <!-- ===== 清场热点 ===== -->
+    <div class="hotspot glow" id="clean-hotspot-power" onclick="doCleanup(1)" style="display:none;">
+      <span class="hotspot-label">切断电源</span>
+    </div>
+    <div class="hotspot glow" id="clean-hotspot-cool" onclick="doCleanup(2)" style="display:none;">
+      <span class="hotspot-label">滚筒散热</span>
+    </div>
+    <div class="hotspot glow" id="clean-hotspot-empty" onclick="doCleanup(3)" style="display:none;">
+      <span class="hotspot-label">清空物料</span>
+    </div>
+    <div class="hotspot glow" id="clean-hotspot-sweep" onclick="doCleanup(4)" style="display:none;">
+      <span class="hotspot-label">清扫滚筒</span>
+    </div>
+    <div class="hotspot glow" id="clean-hotspot-sign" onclick="doCleanup(5)" style="display:none;">
+      <span class="hotspot-label">悬挂标牌</span>
+    </div>
+
+    <!-- ===== 报告图标 ===== -->
+    <div class="hotspot" id="report-hotspot" onclick="showReport()" style="display:none;">
+      <span class="hotspot-label">查看报告</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 右侧：控制面板侧边栏 ===== -->
+<div class="sidebar-pane" id="sidebar-pane">
+  <div class="sidebar-title">EC-RC-800 炒药机控制系统</div>
+
+  <!-- 状态显示 -->
+  <div class="sb-status">
+    <div class="sb-status-item">
+      <div class="label">温度</div>
+      <div class="value" id="disp-temp">25℃</div>
+    </div>
+    <div class="sb-status-item">
+      <div class="label">转速</div>
+      <div class="value" id="disp-speed">0</div>
+    </div>
+    <div class="sb-status-item">
+      <div class="label">状态</div>
+      <div class="status-text"><span class="status-dot idle" id="status-dot"></span><span id="status-text" style="font-size:8px; font-weight:700;">待机</span></div>
+    </div>
+  </div>
+
+  <!-- 当前任务提示 -->
+  <div class="sb-task" id="ts-task">
+    <b>麸炒枳壳</b> 温度180-220℃ 转速20-30r/min
+  </div>
+
+  <!-- 药材选择 -->
+  <select class="sb-herb-select" id="herb-select" onchange="onHerbChange(this.value)">
+    <option value="">-- 选择药材 --</option>
+    <option value="zhike">麸炒枳壳</option>
+    <option value="shanyao">清炒山药</option>
+    <option value="baizhu">土炒白术</option>
+  </select>
+
+  <!-- 急停倒计时（侧边栏内） -->
+  <div class="sb-estop-timer" id="sb-estop-timer">
+    ⚠ 紧急停止！<span class="countdown-num" id="sb-estop-countdown">3</span>秒内拍急停！
+  </div>
+
+  <!-- QTE 投药倒计时 -->
+  <div class="qte-countdown" id="qte-countdown">
+    投药窗口 <span id="qte-timer">5.0</span>s
+    <div class="qte-bar"><div class="qte-bar-fill" id="qte-bar-fill" style="width:100%"></div></div>
+  </div>
+
+  <!-- 参数滑动条 -->
+  <div class="sb-slider-group">
+    <div class="sb-slider-label"><span>目标温度</span><span class="val"><span id="temp-val">--</span>℃</span></div>
+    <input type="range" id="slider-temp" min="0" max="300" value="0" oninput="updateTemp(this.value)">
+  </div>
+  <div class="sb-slider-group">
+    <div class="sb-slider-label"><span>滚筒转速</span><span class="val"><span id="speed-val">--</span> r/min</span></div>
+    <input type="range" id="slider-speed" min="0" max="50" value="0" oninput="updateSpeed(this.value)">
+  </div>
+
+  <!-- 升温曲线 -->
+  <div style="margin-bottom:3px;">
+    <div style="font-size:6px; color:#888; margin-bottom:1px;">升温曲线</div>
+    <div id="chart-container"></div>
+  </div>
+
+  <!-- 按钮组 -->
+  <button class="sb-btn sb-btn-start" id="btn-start" onclick="startHeating()" disabled>启动加热</button>
+  <button class="sb-btn sb-btn-stop" id="btn-stop" onclick="handleEStop()" style="margin-top:4px;">紧急停止</button>
+  <!-- 调试：手动触发故障测试 -->
+  <button id="btn-test-fault" onclick="triggerFault()" style="display:none; margin-top:4px; font-size:7px; color:#888; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:4px; width:100%; cursor:pointer;">[调试] 触发故障</button>
+</div>
+
+</div><!-- .app-layout -->
 
 <!-- Toast 提示条 -->
 <div class="toast-bar" id="toast-bar"></div>
-
-<!-- ===== GMP 合规模态框 ===== -->
-<div class="gmp-modal" id="gmp-modal">
-  <div class="modal-box">
-    <div class="modal-title">车间环境与设备巡检</div>
-    <p style="font-size:11px; color:#aaa; margin-bottom:12px; line-height:1.5;">
-      请在设备图上点击需要检查的 <span style="color:#2ed573;">正确位置</span>，共 3 项。<br>
-      <span style="color:#ff4757;">误点无关部位将扣分。</span>
-    </p>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <span style="font-size:10px; color:#00d4ff;">已发现 <span id="gmp-found-count">0</span> / 3 项</span>
-      <span style="font-size:10px; color:#888;">剩余时间 <span id="gmp-time-left">60</span>s</span>
-    </div>
-    <div id="gmp-checklist" style="margin-bottom:12px;">
-      <div class="gmp-check-item" style="padding:4px 0;"><span style="font-size:10px; color:#888;" id="gmp-task-1">○ 检查【已清洁】标牌</span></div>
-      <div class="gmp-check-item" style="padding:4px 0;"><span style="font-size:10px; color:#888;" id="gmp-task-2">○ 检查通风排烟系统</span></div>
-      <div class="gmp-check-item" style="padding:4px 0;"><span style="font-size:10px; color:#888;" id="gmp-task-3">○ 检查冷却水阀门</span></div>
-    </div>
-    <button class="modal-btn gmp-btn-skip" onclick="skipGmpModal()" style="width:100%; margin-top:0;">跳过（扣5分）</button>
-  </div>
-</div>
-
-<!-- ===== 设备图 + 所有热点 ===== -->
-<div class="machine-wrapper" id="machine-wrapper">
-  <img src="bg_machine.png" alt="炒药机" class="machine-img" id="machine-img">
-
-  <!-- 滚筒观察窗 -->
-  <div class="drum-overlay" id="drum-overlay" onclick="openDrumModal()">
-    <img src="drum.png" alt="滚筒内部" id="drum-img">
-  </div>
-
-  <!-- 白烟 -->
-  <div class="smoke-container" id="smoke-container"></div>
-
-  <!-- ===== GMP 巡检热点（3个正确项 + 3个干扰项） ===== -->
-  <!-- 正确项 1：已清洁标牌（右上控制面板附近） -->
-  <div class="hotspot glow" id="gmp-correct-1" onclick="clickGmpCorrect(1)" style="display:none;">
-    <span class="hotspot-label">【已清洁】标牌</span>
-  </div>
-  <!-- 正确项 2：通风排烟管（顶部管道） -->
-  <div class="hotspot glow" id="gmp-correct-2" onclick="clickGmpCorrect(2)" style="display:none;">
-    <span class="hotspot-label">排烟管道</span>
-  </div>
-  <!-- 正确项 3：冷却水阀门（底部管道阀门） -->
-  <div class="hotspot glow" id="gmp-correct-3" onclick="clickGmpCorrect(3)" style="display:none;">
-    <span class="hotspot-label">冷却水阀</span>
-  </div>
-  <!-- 干扰项 1：进料斗（不是GMP检查项） -->
-  <div class="hotspot glow" id="gmp-decoy-1" onclick="clickGmpDecoy(1)" style="display:none;">
-    <span class="hotspot-label">进料斗</span>
-  </div>
-  <!-- 干扰项 2：出料口 -->
-  <div class="hotspot glow" id="gmp-decoy-2" onclick="clickGmpDecoy(2)" style="display:none;">
-    <span class="hotspot-label">出料口</span>
-  </div>
-  <!-- 干扰项 3：电机外壳 -->
-  <div class="hotspot glow" id="gmp-decoy-3" onclick="clickGmpDecoy(3)" style="display:none;">
-    <span class="hotspot-label">电机外壳</span>
-  </div>
-
-  <!-- ===== 热点：故障报警 ===== -->
-  <div class="fault-overlay" id="fault-overlay">
-    <div class="fault-text" id="fault-text">⚠ 设备故障！</div>
-    <div class="estop-countdown" id="estop-countdown" style="margin-top:8px;">3</div>
-  </div>
-
-  <!-- ===== 热点：投药提示 ===== -->
-  <div class="feed-overlay" id="feed-overlay">
-    <div class="feed-text">⚠ 麸下烟起！请投药！</div>
-  </div>
-
-  <!-- ===== 热点：投药按钮（出现在料斗区域） ===== -->
-  <div class="hotspot warning" id="feed-hotspot" onclick="feedMedicine()" style="display:none;">
-    <span class="hotspot-label">投药</span>
-  </div>
-
-  <!-- ===== 触摸屏 ===== -->
-  <div class="touchscreen" id="touchscreen">
-    <div class="ts-header">EC-RC-800</div>
-
-    <div class="ts-task" id="ts-task">
-      <b>麸炒枳壳</b> 温度180-220℃ 转速20-30r/min
-    </div>
-
-    <div class="ts-status">
-      <div class="ts-status-item">
-        <div class="label">温度</div>
-        <div class="value" id="disp-temp">25℃</div>
-      </div>
-      <div class="ts-status-item">
-        <div class="label">转速</div>
-        <div class="value" id="disp-speed">0</div>
-      </div>
-      <div class="ts-status-item">
-        <div class="label">状态</div>
-        <div class="status-text"><span class="status-dot idle" id="status-dot"></span><span id="status-text">待机</span></div>
-      </div>
-    </div>
-
-    <!-- 药材选择 -->
-    <select class="ts-herb-select" id="herb-select" onchange="onHerbChange(this.value)">
-      <option value="">-- 选择药材 --</option>
-      <option value="zhike">麸炒枳壳</option>
-      <option value="shanyao">清炒山药</option>
-      <option value="baizhu">土炒白术</option>
-    </select>
-
-    <div id="estop-timer-display" style="display:none; text-align:center; font-size:7px; color:#ff4757; margin-bottom:2px;">
-      ⚠ <span id="estop-countdown">3</span>秒内拍急停！
-    </div>
-
-    <!-- QTE 投药倒计时 -->
-    <div class="qte-countdown" id="qte-countdown">
-      投药窗口 <span id="qte-timer">5.0</span>s
-      <div class="qte-bar"><div class="qte-bar-fill" id="qte-bar-fill" style="width:100%"></div></div>
-    </div>
-
-    <div class="ts-slider-group">
-      <div class="ts-slider-label"><span>目标温度</span><span class="val"><span id="temp-val">--</span>℃</span></div>
-      <input type="range" id="slider-temp" min="0" max="300" value="0" oninput="updateTemp(this.value)">
-    </div>
-    <div class="ts-slider-group">
-      <div class="ts-slider-label"><span>滚筒转速</span><span class="val"><span id="speed-val">--</span> r/min</span></div>
-      <input type="range" id="slider-speed" min="0" max="50" value="0" oninput="updateSpeed(this.value)">
-    </div>
-
-    <div style="margin-bottom:3px;">
-      <div style="font-size:6px; color:#888; margin-bottom:1px;">升温曲线</div>
-      <div id="chart-container" style="height:40px;"></div>
-    </div>
-
-    <button class="ts-btn ts-btn-start" id="btn-start" onclick="startHeating()" disabled style="margin-bottom:2px;">启动</button>
-    <button class="ts-btn ts-btn-stop" id="btn-stop" onclick="handleEStop()">紧急停止</button>
-    <!-- 调试：手动触发故障测试 -->
-    <button id="btn-test-fault" onclick="triggerFault()" style="display:none; margin-top:2px; font-size:6px; color:#888; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:2px; width:100%; cursor:pointer;">[调试] 触发故障</button>
-  </div>
-
-  <!-- ===== 清场步骤面板 ===== -->
-  <div class="cleanup-steps" id="cleanup-panel">
-    <div class="cleanup-step-indicator" id="clean-step-1"><div class="step-icon">1</div>切断电源</div>
-    <div class="cleanup-step-indicator" id="clean-step-2"><div class="step-icon">2</div>滚筒散热</div>
-    <div class="cleanup-step-indicator" id="clean-step-3"><div class="step-icon">3</div>清空物料</div>
-    <div class="cleanup-step-indicator" id="clean-step-4"><div class="step-icon">4</div>清扫滚筒</div>
-    <div class="cleanup-step-indicator" id="clean-step-5"><div class="step-icon">5</div>悬挂标牌</div>
-  </div>
-
-  <!-- ===== 清场热点 ===== -->
-  <div class="hotspot glow" id="clean-hotspot-power" onclick="doCleanup(1)" style="display:none;">
-    <span class="hotspot-label">切断电源</span>
-  </div>
-  <div class="hotspot glow" id="clean-hotspot-cool" onclick="doCleanup(2)" style="display:none;">
-    <span class="hotspot-label">滚筒散热</span>
-  </div>
-  <div class="hotspot glow" id="clean-hotspot-empty" onclick="doCleanup(3)" style="display:none;">
-    <span class="hotspot-label">清空物料</span>
-  </div>
-  <div class="hotspot glow" id="clean-hotspot-sweep" onclick="doCleanup(4)" style="display:none;">
-    <span class="hotspot-label">清扫滚筒</span>
-  </div>
-  <div class="hotspot glow" id="clean-hotspot-sign" onclick="doCleanup(5)" style="display:none;">
-    <span class="hotspot-label">悬挂标牌</span>
-  </div>
-
-  <!-- ===== 报告图标 ===== -->
-  <div class="hotspot" id="report-hotspot" onclick="showReport()" style="display:none;">
-    <span class="hotspot-label">查看报告</span>
-  </div>
-</div>
-
-<!-- ===== 底部信息栏 ===== -->
-<div class="bottom-bar" id="bottom-bar">
-  <span class="info-text" id="bottom-hint">请先完成GMP安全确认</span>
-</div>
 
 <!-- ===== 滚筒放大 ===== -->
 <div class="drum-modal" id="drum-modal" onclick="closeDrumModal()">
@@ -937,7 +960,7 @@ input[type="range"]::-webkit-slider-thumb {
 // 异常路径：HEATING → EMERGENCY_TEST → (急停响应) → HEATING 或 emergencyStop → CLEANING
 // ============================================================
 const PHASE = {
-  INIT: 'init',              // GMP模态框阶段，触摸屏锁定
+  INIT: 'init',              // GMP巡检阶段
   PARAM_SETTING: 'param_setting',  // 参数设定（药材+温度+转速）
   HEATING: 'heating',        // 动态升温，含投药QTE窗口
   COOKING: 'cooking',        // 炮制中（投药后维持加热一段时间）
@@ -954,14 +977,13 @@ function createScoreState() {
   return {
     baseScore: 100,
     deductions: [],
-    // 考核锚点
-    gmpCheckPassed: true,    // GMP是否完整通过
-    paramErrors: [],         // 参数错误记录
-    feedTiming: null,        // 投药时机记录
-    earlyFeedAttempt: false, // 是否尝试提前投药
-    emergencyReacted: false, // 急停是否响应
-    emergencyTriggered: false, // 是否触发了故障
-    cleanupOrderError: false,  // 清场顺序是否出错
+    gmpCheckPassed: true,
+    paramErrors: [],
+    feedTiming: null,
+    earlyFeedAttempt: false,
+    emergencyReacted: false,
+    emergencyTriggered: false,
+    cleanupOrderError: false,
   };
 }
 
@@ -1025,7 +1047,6 @@ EventBus.on('STATE_CHANGE', (data) => {
       statusDot.className = 'status-dot running';
       drumOverlay.classList.add('visible');
       btnStart.disabled = true;
-      // 初始化 UI 状态
       state.phase = PHASE.HEATING;
       state.running = true;
       state.simTime = 0;
@@ -1051,7 +1072,6 @@ EventBus.on('STATE_CHANGE', (data) => {
       state.coolingStartTemp = state.maxTempReached;
       state.coolingStartTime = state.simTime;
       state.lastTime = performance.now();
-      // Engine.startCooling() 会通过 TEMP_UPDATE 驱动 UI
       break;
     case 'END':
       statusText.textContent = '已完成';
@@ -1066,14 +1086,13 @@ EventBus.on('STATE_CHANGE', (data) => {
     case 'EMERGENCY':
       statusText.textContent = '故障！';
       statusDot.className = 'status-dot stopped';
-      btnStop.classList.add('ts-btn-estop-alert');
-      document.getElementById('estop-timer-display').style.display = 'block';
+      btnStop.classList.add('sb-btn-estop-alert');
+      document.getElementById('sb-estop-timer').classList.add('visible');
       break;
   }
 });
 
 EventBus.on('UI_UNLOCK', () => {
-  // GMP 完成后解锁
   showToast('GMP确认完成，请选择药材并设置参数', 'success');
 });
 
@@ -1084,27 +1103,23 @@ EventBus.on('PARAMS_SET', (data) => {
 EventBus.on('TEMP_UPDATE', (data) => {
   document.getElementById('disp-temp').textContent = data.temp + '℃';
   document.getElementById('disp-speed').textContent = data.speed + ' r/min';
-  // 同步到本地 state（用于 ECharts、烟雾、热发光等视觉层）
   state.currentTemp = data.temp;
   state.currentSpeed = data.speed;
   state.simTime = data.time;
   state.maxTempReached = Math.max(state.maxTempReached, data.temp);
 
-  // ECharts 更新
   if (Math.floor(data.time) > state.timeHistory.length) {
     state.timeHistory.push(Math.floor(data.time) + 's');
     state.tempHistory.push(data.temp);
   }
   chart.setOption({ series: [{ data: state.tempHistory }] });
 
-  // 视觉层
   updateHeatGlow();
   updateScreenOverlay();
   spawnSmoke();
   checkLowSpeedPenalty();
   checkOvertempPenalty();
 
-  // 滚筒旋转
   const degPerSec = state.currentSpeed * 6;
   state.drumAngle += degPerSec * 0.1;
   drumImg.style.transform = 'rotate(' + state.drumAngle + 'deg)';
@@ -1191,12 +1206,13 @@ EventBus.on('FAULT_TRIGGER', (data) => {
 
 EventBus.on('ESTOP_COUNTDOWN', (data) => {
   document.getElementById('estop-countdown').textContent = data.countdown;
+  document.getElementById('sb-estop-countdown').textContent = data.countdown;
 });
 
 EventBus.on('ESTOP_SUCCESS', () => {
   document.getElementById('fault-overlay').classList.remove('visible');
-  document.getElementById('estop-timer-display').style.display = 'none';
-  btnStop.classList.remove('ts-btn-estop-alert');
+  document.getElementById('sb-estop-timer').classList.remove('visible');
+  btnStop.classList.remove('sb-btn-estop-alert');
   showToast('故障已响应，设备已停止', 'success');
   setTimeout(() => showCleanupPhase(), 1500);
 });
@@ -1207,12 +1223,10 @@ EventBus.on('MANUAL_STOP', () => {
 });
 
 EventBus.on('GAME_OVER', () => {
-  const result = Engine.scoring.result();
   setTimeout(() => showScoreModal('fail', '安全红线！一票否决！', '故障未在3秒内拍急停！\n直接0分！'), 500);
 });
 
 EventBus.on('SCORING_UPDATE', (data) => {
-  // 同步计分状态
   state.baseScore = data.score;
   state.deductions = data.logs.map(l => ({ reason: l.reason, points: l.points }));
   state.scoreState = Object.assign(state.scoreState, { oneStrikeOut: data.oneStrikeOut });
@@ -1235,13 +1249,12 @@ EventBus.on('PARAM_ERROR', (data) => {
 // 百分比坐标系统（基于2752x1536原图）
 // ============================================================
 const P = {
-  gmpCorrect1: { x: 82, y: 12, w: 6, h: 8 },   // 正确项1：【已清洁】标牌（右上控制面板）
-  gmpCorrect2: { x: 45, y: 3, w: 10, h: 6 },    // 正确项2：通风排烟管（顶部管道）
-  gmpCorrect3: { x: 12, y: 55, w: 8, h: 8 },    // 正确项3：冷却水阀门（左下管道）
-  gmpDecoy1:   { x: 25, y: 5, w: 10, h: 10 },   // 干扰项1：进料斗
-  gmpDecoy2:   { x: 55, y: 45, w: 8, h: 10 },   // 干扰项2：出料口
-  gmpDecoy3:   { x: 18, y: 38, w: 8, h: 8 },    // 干扰项3：电机外壳
-  ts: { x: 73, y: 19, w: 18, h: 42 },
+  gmpCorrect1: { x: 82, y: 12, w: 6, h: 8 },
+  gmpCorrect2: { x: 45, y: 3, w: 10, h: 6 },
+  gmpCorrect3: { x: 12, y: 55, w: 8, h: 8 },
+  gmpDecoy1:   { x: 25, y: 5, w: 10, h: 10 },
+  gmpDecoy2:   { x: 55, y: 45, w: 8, h: 10 },
+  gmpDecoy3:   { x: 18, y: 38, w: 8, h: 8 },
   drum: { x: 36, y: 32, w: 14, h: 14 },
   feed: { x: 25, y: 5, w: 12, h: 12 },
   fault: { x: 40, y: 15, w: 20, h: 15 },
@@ -1281,13 +1294,6 @@ function positionAll() {
   drumOverlay.style.height = d.height + 'px';
   drumOverlay.style.left = (d.left + d.width * 0.1) + 'px';
   drumOverlay.style.top = d.top + 'px';
-
-  const t = calcPos(P.ts);
-  const ts = document.getElementById('touchscreen');
-  ts.style.left = t.left + 'px';
-  ts.style.top = t.top + 'px';
-  ts.style.width = t.width + 'px';
-  ts.style.height = t.height + 'px';
 
   // GMP 正确项热点定位
   const gmpCorrectMap = {
@@ -1365,7 +1371,7 @@ function positionAll() {
 // ===== 初始化 =====
 window.addEventListener('load', () => {
   positionAll();
-  initGmpModal();
+  initGmpHud();
 });
 window.addEventListener('resize', () => { chart.resize(); positionAll(); });
 
@@ -1401,16 +1407,17 @@ function showToast(msg, type) {
 }
 
 // ============================================================
-// 阶段1：GMP 合规巡检（设备图热点识别）
+// 阶段1：GMP 合规巡检（设备图热点识别 + HUD 浮层）
 // ============================================================
 
 let gmpTimer = null;
 let gmpTimeLeft = 60;
-let gmpFound = 0;       // 已找到的正确项数
-let gmpDecoyClicks = 0;  // 误点干扰项次数
+let gmpFound = 0;
+let gmpDecoyClicks = 0;
 
-function initGmpModal() {
-  document.getElementById('gmp-modal').classList.remove('hidden');
+function initGmpHud() {
+  document.getElementById('gmp-hud').classList.add('visible');
+  showGmpPhase();
   showToast('请先完成车间环境与设备巡检', 'info');
 }
 
@@ -1422,7 +1429,6 @@ function startGmpTimer() {
     document.getElementById('gmp-time-left').textContent = Math.max(0, gmpTimeLeft);
     if (gmpTimeLeft <= 0) {
       clearInterval(gmpTimer);
-      // 超时未完成，扣分跳过
       addDeduction('GMP巡检超时未完成', -10);
       completeGmpInspection();
     }
@@ -1435,7 +1441,7 @@ function updateGmpFound() {
   const taskEl = document.getElementById('gmp-task-' + gmpFound);
   if (taskEl) {
     taskEl.textContent = taskEl.textContent.replace('○', '✅');
-    taskEl.style.color = '#2ed573';
+    taskEl.classList.add('done');
   }
   if (gmpFound >= 3) {
     clearInterval(gmpTimer);
@@ -1448,10 +1454,9 @@ function completeGmpInspection() {
   state.gmpConfirmed = true;
   state.gmpCheckPassed = true;
   state.gmpDecoyClicks = gmpDecoyClicks;
-  document.getElementById('gmp-modal').classList.add('hidden');
+  document.getElementById('gmp-hud').classList.remove('visible');
   state.phase = PHASE.PARAM_SETTING;
   hideAllGmpHotspots();
-  document.getElementById('bottom-hint').textContent = '请选择药材并设置参数';
   showToast('GMP确认完成，请选择药材并设置参数', 'success');
 }
 
@@ -1466,27 +1471,24 @@ function skipGmpModal() {
   Engine.skipGmp();
   state.gmpSkipped = true;
   state.gmpCheckPassed = false;
-  document.getElementById('gmp-modal').classList.add('hidden');
+  document.getElementById('gmp-hud').classList.remove('visible');
   state.phase = PHASE.PARAM_SETTING;
-  showGmpPhase();
+  hideAllGmpHotspots();
   showToast('已跳过GMP确认，扣5分', 'warning');
 }
 
-// 显示 GMP 巡检热点（正确项 + 干扰项）
+// 显示 GMP 巡检热点
 function showGmpPhase() {
-  document.getElementById('bottom-hint').textContent = '请在设备图上找到3个需要检查的正确位置';
   gmpFound = 0;
   gmpDecoyClicks = 0;
   document.getElementById('gmp-found-count').textContent = '0';
-  // 重置任务列表
   for (let i = 1; i <= 3; i++) {
     const taskEl = document.getElementById('gmp-task-' + i);
     if (taskEl) {
       taskEl.textContent = taskEl.textContent.replace('✅', '○');
-      taskEl.style.color = '#888';
+      taskEl.classList.remove('done');
     }
   }
-  // 显示所有热点
   for (let i = 1; i <= 3; i++) {
     document.getElementById('gmp-correct-' + i).style.display = 'block';
     document.getElementById('gmp-decoy-' + i).style.display = 'block';
@@ -1499,7 +1501,6 @@ function showGmpPhase() {
 function clickGmpCorrect(num) {
   const el = document.getElementById('gmp-correct-' + num);
   if (el.classList.contains('done')) return;
-
   el.classList.remove('glow');
   el.classList.add('done');
   el.style.display = 'none';
@@ -1557,14 +1558,10 @@ function startHeating() {
     return;
   }
 
-  // 委托给 Engine 启动加热
   Engine.setParams(state.targetTemp, state.targetSpeed);
   Engine.startHeating();
   showToast('设备启动，开始加热', 'info');
 }
-
-// ===== 仿真主循环已由 Engine._simLoop 接管 =====
-// 旧的 simulate 函数已移除，温度/转速/烟雾等由 Engine 通过 TEMP_UPDATE 事件驱动
 
 function updateDisplay() {
   document.getElementById('disp-temp').textContent = Math.round(state.currentTemp) + '℃';
@@ -1623,10 +1620,7 @@ function checkOvertempPenalty() {
   }
 }
 
-// ===== 投药时机（QTE 机制）已由 Engine._checkQteTrigger 接管 =====
-// Engine 通过 QTE_START / QTE_COUNTDOWN / QTE_TIMEOUT 事件驱动 UI
-
-// QTE 投药倒计时（5秒窗口可视化）— 仅做视觉展示，超时逻辑由 Engine 通过 QTE_TIMEOUT 事件处理
+// QTE 投药倒计时（5秒窗口可视化）
 function startQteCountdown(seconds) {
   const qteEl = document.getElementById('qte-countdown');
   const timerEl = document.getElementById('qte-timer');
@@ -1640,10 +1634,7 @@ function startQteCountdown(seconds) {
   if (state.qteInterval) clearInterval(state.qteInterval);
   state.qteInterval = setInterval(() => {
     remaining -= 0.1;
-    if (remaining <= 0) {
-      remaining = 0;
-      // 不清理、不停止 — Engine 会通过 QTE_TIMEOUT 事件处理
-    }
+    if (remaining <= 0) remaining = 0;
     timerEl.textContent = remaining.toFixed(1);
     barFill.style.width = (remaining / seconds * 100) + '%';
   }, 100);
@@ -1654,17 +1645,12 @@ function hideQteCountdown() {
   if (state.qteInterval) clearInterval(state.qteInterval);
 }
 
-// ===== 提前投药惩罚已由 Engine.feed 处理 =====
-// Engine 通过 FEED_EARLY / FEED_LATE 事件通知 UI
-
 // ============================================================
 // 虚拟投药
 // ============================================================
 function feedMedicine() {
   Engine.feed();
 }
-
-// ===== 故障模拟已由 Engine._scheduleFault / _triggerFault 接管 =====
 
 function triggerFault() {
   Engine._triggerFault();
@@ -1697,8 +1683,8 @@ function emergencyStopUI() {
   document.getElementById('feed-hotspot').style.display = 'none';
   document.getElementById('feed-overlay').classList.remove('visible');
   document.getElementById('fault-overlay').classList.remove('visible');
-  btnStop.classList.remove('ts-btn-estop-alert');
-  document.getElementById('estop-timer-display').style.display = 'none';
+  btnStop.classList.remove('sb-btn-estop-alert');
+  document.getElementById('sb-estop-timer').classList.remove('visible');
   screenOverlay.className = 'screen-overlay';
   state.currentSpeed = 0;
   state.currentTemp = 25;
@@ -1707,9 +1693,6 @@ function emergencyStopUI() {
     setTimeout(() => showCleanupPhase(), 1500);
   }
 }
-
-// ===== 自然降温已由 Engine.startCooling 接管 =====
-// Engine 通过 TEMP_UPDATE 事件驱动 UI 更新（ECharts、滚筒旋转等）
 
 // ============================================================
 // 清场阶段
@@ -1722,7 +1705,6 @@ function showCleanupPhase() {
   state.phase = PHASE.CLEANING;
   state.cleanupStep = 1;
   document.getElementById('cleanup-panel').classList.add('visible');
-  document.getElementById('bottom-hint').textContent = '请按照顺序在设备上点击热点完成清场';
   updateCleanupUI();
   showToast('操作完成！请执行清场流程', 'info');
 }
@@ -1778,7 +1760,6 @@ function doCleanup(step) {
       document.getElementById('status-text').textContent = '已完成';
       document.getElementById('status-dot').className = 'status-dot idle';
       document.getElementById('report-hotspot').style.display = 'block';
-      document.getElementById('bottom-hint').textContent = '点击查看操作记录单';
       showToast('清场完成！点击查看报告', 'success');
     }, 600);
   }
